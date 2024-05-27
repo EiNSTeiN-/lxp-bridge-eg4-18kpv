@@ -1,12 +1,12 @@
-name: lxp-bridge
-version: v0.13.0
-slug: lxp-bridge
-description: Allows local communication with Luxpower inverters and bridges it to MQTT
+name: lxp-bridge-eg4-18kpv
+version: v0.13.0-eg4-18kpv
+slug: lxp-bridge-eg4-18kpv
+description: Allows local communication with EG4 18kPV inverters and bridges it to MQTT
 arch:
 - armv7
 - aarch64
 - amd64
-url: "https://github.com/celsworth/lxp-bridge"
+url: "https://github.com/EiNSTeiN-/lxp-bridge-eg4-18kpv"
 init: false
 startup: application
 stage: experimental
