@@ -206,7 +206,7 @@ impl Message {
             }
             ["set", "charge_rate_pct"] => ChargeRate(inverter, self.payload_int()?),
             ["set", "discharge_rate_pct"] => DischargeRate(inverter, self.payload_int()?),
-            ["set", "ac_charge_rate_pct"] => AcChargeRate(inverter, self.payload_int()?),
+            ["set", "ac_charge_power"] => AcChargePower(inverter, self.payload_int()?),
 
             ["set", "ac_charge_soc_limit_pct"] => AcChargeSocLimit(inverter, self.payload_int()?),
 

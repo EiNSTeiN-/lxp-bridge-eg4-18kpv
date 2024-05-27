@@ -166,7 +166,7 @@ impl Coordinator {
                     .await
             }
 
-            AcChargeRate(inverter, pct) => {
+            AcChargePower(inverter, pct) => {
                 self.set_hold(inverter, Register::AcChargePowerCmd, pct)
                     .await
             }
