@@ -558,7 +558,7 @@ impl Config {
             self.switch("forced_discharge", "Forced Discharge")?,
             self.number_percent(Register::ChargePowerPercentCmd, "System Charge Rate (%)")?,
             self.number_percent(Register::DischgPowerPercentCmd, "System Discharge Rate (%)")?,
-            self.number_percent(Register::AcChargePowerCmd, "AC Charge Rate (%)")?,
+            self.number_power(Register::AcChargePowerCmd, "AC Charge Power (W)")?,
             self.number_percent(Register::AcChargeSocLimit, "AC Charge Limit %")?,
             self.number_percent(Register::ChargePriorityPowerCmd, "Charge Priority Rate (%)")?,
             self.number_percent(Register::ChargePrioritySocLimit, "Charge Priority Limit %")?,
@@ -657,6 +657,36 @@ impl Config {
             max: 100.0,
             step: 1.0,
             unit_of_measurement: "%".to_string(),
+        };
+
+        Ok(mqtt::Message {
+            topic: self.ha_discovery_topic("number", &format!("{:?}", register)),
+            retain: true,
+            payload: serde_json::to_string(&config)?,
+        })
+    }
+
+    fn number_power(&self, register: Register, label: &str) -> Result<mqtt::Message> {
+        let config = Number {
+            name: label.to_string(),
+            state_topic: format!(
+                "{}/{}/hold/{}",
+                self.mqtt_config.namespace(),
+                self.inverter.datalog(),
+                register as u16,
+            ),
+            command_topic: format!(
+                "{}/cmd/{}/set/hold/{}",
+                self.mqtt_config.namespace(),
+                self.inverter.datalog(),
+                register as u16,
+            ),
+            value_template: "{{ float(value) }}".to_string(),
+            unique_id: format!("lxp_{}_number_{:?}", self.inverter.datalog(), register),
+            device: self.device(),
+            availability: self.availability(),
+            step: 1.0,
+            unit_of_measurement: "W".to_string(),
         };
 
         Ok(mqtt::Message {
