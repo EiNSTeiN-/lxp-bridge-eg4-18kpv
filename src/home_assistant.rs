@@ -685,6 +685,8 @@ impl Config {
             unique_id: format!("lxp_{}_number_{:?}", self.inverter.datalog(), register),
             device: self.device(),
             availability: self.availability(),
+            min: 0.0,
+            max: 9999999.0,
             step: 1.0,
             unit_of_measurement: "W".to_string(),
         };
