@@ -287,7 +287,7 @@ impl Config {
                 ..voltage.clone()
             },
             Entity {
-                key: "v_bus_1",
+                key: "v_bus_2",
                 name: "Bus 2 Voltage",
                 ..voltage.clone()
             },
