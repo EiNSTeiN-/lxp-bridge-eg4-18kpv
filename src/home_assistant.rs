@@ -633,7 +633,7 @@ impl Config {
             Entity {
                 key: "vbat_inv",
                 name: "Inverter Battery Voltage Sampling",
-                ..temperature.clone()
+                ..voltage.clone()
             },
             Entity {
                 key: "v_gen",
