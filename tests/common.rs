@@ -98,6 +98,7 @@ impl Factory {
             t_rad_2: 37,
             t_bat: 0,
             runtime: 67589346,
+            ac_input_type: 1,
             time: UnixTime::now(),
             datalog: Serial::from_str("1234567890").unwrap(),
         }
@@ -132,6 +133,7 @@ impl Factory {
             bms_fw_update_state: 2,
             cycle_count: 200,
             vbat_inv: 5.4,
+            t1_temp: 19.2,
             time: UnixTime::now(),
             datalog: Serial::from_str("1234567890").unwrap(),
         }
@@ -201,6 +203,7 @@ impl Factory {
             t_rad_2: 37,
             t_bat: 0,
             runtime: 67589346,
+            ac_input_type: 1,
             max_chg_curr: 150.0,
             max_dischg_curr: 150.0,
             charge_volt_ref: 53.2,
@@ -228,6 +231,7 @@ impl Factory {
             bms_fw_update_state: 2,
             cycle_count: 200,
             vbat_inv: 5.4,
+            t1_temp: 19.2,
             time: UnixTime::now(),
             datalog: Serial::from_str("1234567890").unwrap(),
         }

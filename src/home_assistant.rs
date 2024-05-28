@@ -211,7 +211,7 @@ impl Config {
                     self.mqtt_config.namespace(),
                     self.inverter.datalog()
                 ),
-                value_template: "{{ value | string }}".to_string(),
+                value_template: ValueTemplate::String("{{ value | string }}".to_string()),
                 ..base.clone()
             },
             Entity {
@@ -231,7 +231,7 @@ impl Config {
                     self.mqtt_config.namespace(),
                     self.inverter.datalog()
                 ),
-                value_template: "{{ value | string }}".to_string(),
+                value_template: ValueTemplate::String("{{ value | string }}".to_string()),
                 icon: Some("mdi:alert"),
                 ..base.clone()
             },
@@ -244,7 +244,7 @@ impl Config {
                     self.mqtt_config.namespace(),
                     self.inverter.datalog()
                 ),
-                value_template: "{{ value | string }}".to_string(),
+                value_template: ValueTemplate::String("{{ value | string }}".to_string()),
                 icon: Some("mdi:alert-outline"),
                 ..base.clone()
             },
