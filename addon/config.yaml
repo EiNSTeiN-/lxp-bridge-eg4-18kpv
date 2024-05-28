@@ -30,6 +30,7 @@ options:
     username: ""
     password: ""
     namespace: lxp
+    publish_individual_input: true
   influx:
     enabled: false
     url: "http://localhost:8086"
@@ -56,6 +57,7 @@ schema:
     username: str
     password: password
     namespace: str
+    publish_individual_input: bool
   influx:
     enabled: bool
     url: url
