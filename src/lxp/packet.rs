@@ -16,176 +16,183 @@ pub enum ReadInput {
 #[derive(PartialEq, Clone, Debug, Serialize, Nom)]
 #[nom(LittleEndian)]
 pub struct ReadInputAll {
-    pub status: u16,
+    pub status: u16,  // operating mode
     #[nom(Parse = "Utils::le_u16_div10")]
-    pub v_pv_1: f64,
+    pub v_pv_1: f64, // PV1 voltage
     #[nom(Parse = "Utils::le_u16_div10")]
-    pub v_pv_2: f64,
+    pub v_pv_2: f64, // PV2 voltage
     #[nom(Parse = "Utils::le_u16_div10")]
-    pub v_pv_3: f64,
+    pub v_pv_3: f64, // PV3 voltage
     #[nom(Parse = "Utils::le_u16_div10")]
-    pub v_bat: f64,
+    pub v_bat: f64, // battery voltage
 
-    pub soc: i8,
-    pub soh: i8,
+    pub soc: i8,  // battery capacity (state of charge)
+    pub soh: i8, // state of health
 
     pub internal_fault: u16,
 
     #[nom(Ignore)]
     pub p_pv: u16,
-    pub p_pv_1: u16,
-    pub p_pv_2: u16,
-    pub p_pv_3: u16,
+    pub p_pv_1: u16, // PV1 power
+    pub p_pv_2: u16, // PV2 power
+    pub p_pv_3: u16, // PV3 power
     #[nom(Ignore)]
     pub p_battery: i32,
-    pub p_charge: u16,
-    pub p_discharge: u16,
+    pub p_charge: u16, // charging power (incoming battery power)
+    pub p_discharge: u16, // discharge power (outflow battery power)
 
     #[nom(Parse = "Utils::le_u16_div10")]
-    pub v_ac_r: f64,
+    pub v_ac_r: f64, // R-phase mains voltage
     #[nom(Parse = "Utils::le_u16_div10")]
-    pub v_ac_s: f64,
+    pub v_ac_s: f64, // S-phase mains voltage
     #[nom(Parse = "Utils::le_u16_div10")]
-    pub v_ac_t: f64,
+    pub v_ac_t: f64, // T-phase mains voltage
     #[nom(Parse = "Utils::le_u16_div100")]
-    pub f_ac: f64,
+    pub f_ac: f64, // Mains frequency
 
-    pub p_inv: u16,
-    pub p_rec: u16,
+    pub p_inv: u16, // Inverter output power (grid port)
+    pub p_rec: u16, // AC charging rectified power
 
     #[nom(SkipBefore(2))] // IinvRMS
     #[nom(Parse = "Utils::le_u16_div1000")]
     pub pf: f64,
 
     #[nom(Parse = "Utils::le_u16_div10")]
-    pub v_eps_r: f64,
+    pub v_eps_r: f64, // R-phase off-grid output voltage
     #[nom(Parse = "Utils::le_u16_div10")]
-    pub v_eps_s: f64,
+    pub v_eps_s: f64, // S-phase off-grid output voltage
     #[nom(Parse = "Utils::le_u16_div10")]
-    pub v_eps_t: f64,
+    pub v_eps_t: f64, // T-phase off-grid output voltage
     #[nom(Parse = "Utils::le_u16_div100")]
-    pub f_eps: f64,
-    pub p_eps: u16,
-    pub s_eps: u16,
+    pub f_eps: f64, // Off-grid output frequency
+    pub p_eps: u16, // Off-grid inverter power
+    pub s_eps: u16, // Off-grid apparent power
     #[nom(Ignore)]
     pub p_grid: i32,
-    pub p_to_grid: u16,
-    pub p_to_user: u16,
+    pub p_to_grid: u16, // export power to grid
+    pub p_to_user: u16, // import power from grid
 
     #[nom(Ignore)]
     pub e_pv_day: f64,
     #[nom(Parse = "Utils::le_u16_div10")]
-    pub e_pv_day_1: f64,
+    pub e_pv_day_1: f64, // PV1 power generation today
     #[nom(Parse = "Utils::le_u16_div10")]
-    pub e_pv_day_2: f64,
+    pub e_pv_day_2: f64, // PV2 power generation today
     #[nom(Parse = "Utils::le_u16_div10")]
-    pub e_pv_day_3: f64,
+    pub e_pv_day_3: f64, // PV3 power generation today
 
     #[nom(Parse = "Utils::le_u16_div10")]
-    pub e_inv_day: f64,
+    pub e_inv_day: f64, // Today's grid-connected inverter output energy
     #[nom(Parse = "Utils::le_u16_div10")]
-    pub e_rec_day: f64,
+    pub e_rec_day: f64, // Today's AC charging rectified energy
     #[nom(Parse = "Utils::le_u16_div10")]
-    pub e_chg_day: f64,
+    pub e_chg_day: f64, // Charge energy today
     #[nom(Parse = "Utils::le_u16_div10")]
-    pub e_dischg_day: f64,
+    pub e_dischg_day: f64, // Discharge energy today
     #[nom(Parse = "Utils::le_u16_div10")]
-    pub e_eps_day: f64,
+    pub e_eps_day: f64, // Off-grid output energy today
     #[nom(Parse = "Utils::le_u16_div10")]
-    pub e_to_grid_day: f64,
+    pub e_to_grid_day: f64, // Today's export energy to grid
     #[nom(Parse = "Utils::le_u16_div10")]
-    pub e_to_user_day: f64,
+    pub e_to_user_day: f64, // Today's import energy from grid
 
     #[nom(Parse = "Utils::le_u16_div10")]
-    pub v_bus_1: f64,
+    pub v_bus_1: f64, // Bus 1 voltage
     #[nom(Parse = "Utils::le_u16_div10")]
-    pub v_bus_2: f64,
+    pub v_bus_2: f64, // Bus 2 voltage
 
     #[nom(Ignore)]
     pub e_pv_all: f64,
     #[nom(Parse = "Utils::le_u32_div10")]
-    pub e_pv_all_1: f64,
+    pub e_pv_all_1: f64, // PV1 cumulative power generation
     #[nom(Parse = "Utils::le_u32_div10")]
-    pub e_pv_all_2: f64,
+    pub e_pv_all_2: f64, // PV2 cumulative power generation
     #[nom(Parse = "Utils::le_u32_div10")]
-    pub e_pv_all_3: f64,
+    pub e_pv_all_3: f64, // PV3 cumulative power generation
 
     #[nom(Parse = "Utils::le_u32_div10")]
-    pub e_inv_all: f64,
+    pub e_inv_all: f64, // Inverter accumulative output energy
     #[nom(Parse = "Utils::le_u32_div10")]
-    pub e_rec_all: f64,
+    pub e_rec_all: f64, // AC charging accumulative rectified energy
     #[nom(Parse = "Utils::le_u32_div10")]
-    pub e_chg_all: f64,
+    pub e_chg_all: f64, // Cumulative charge energy level
     #[nom(Parse = "Utils::le_u32_div10")]
-    pub e_dischg_all: f64,
+    pub e_dischg_all: f64, // Cumulative discharge energy level
     #[nom(Parse = "Utils::le_u32_div10")]
-    pub e_eps_all: f64,
+    pub e_eps_all: f64, // Cumulative off-grid inverter power
     #[nom(Parse = "Utils::le_u32_div10")]
-    pub e_to_grid_all: f64,
+    pub e_to_grid_all: f64, // Cumulative export energy to grid
     #[nom(Parse = "Utils::le_u32_div10")]
-    pub e_to_user_all: f64,
+    pub e_to_user_all: f64, // Cumulative import energy from grid
 
     pub fault_code: u32,
     pub warning_code: u32,
 
-    pub t_inner: u16,
-    pub t_rad_1: u16,
-    pub t_rad_2: u16,
-    pub t_bat: u16,
+    pub t_inner: u16, // Internal ring temperature
+    pub t_rad_1: u16, // Radiator 1 temperature
+    pub t_rad_2: u16, // Radiator 2 temperature
+    pub t_bat: u16, // Battery temperature
     #[nom(SkipBefore(2))] // reserved - radiator 3?
     pub runtime: u32,
     // 18 bytes of auto_test stuff here I'm not doing yet
-    #[nom(SkipBefore(18))] // auto_test stuff, TODO..
+    #[nom(SkipBefore(12))] // auto_test stuff, TODO..
+    pub ac_input_type: u16, // 0 for grid, 1 for generator
+    #[nom(SkipBefore(4))] // unspecified
     #[nom(SkipBefore(2))] // bat_brand, bat_com_type
     #[nom(Parse = "Utils::le_u16_div10")]
-    pub max_chg_curr: f64,
+    pub max_chg_curr: f64, // BMS limited maximum charging current
     #[nom(Parse = "Utils::le_u16_div10")]
-    pub max_dischg_curr: f64,
+    pub max_dischg_curr: f64, // BMS limited maximum discharge current
     #[nom(Parse = "Utils::le_u16_div10")]
-    pub charge_volt_ref: f64,
+    pub charge_volt_ref: f64, // BMS recommended charging voltage
     #[nom(Parse = "Utils::le_u16_div10")]
-    pub dischg_cut_volt: f64,
+    pub dischg_cut_volt: f64, // BMS recommended discharge cut-off voltage
 
-    pub bat_status_0: u16,
-    pub bat_status_1: u16,
-    pub bat_status_2: u16,
-    pub bat_status_3: u16,
-    pub bat_status_4: u16,
-    pub bat_status_5: u16,
-    pub bat_status_6: u16,
-    pub bat_status_7: u16,
-    pub bat_status_8: u16,
-    pub bat_status_9: u16,
-    pub bat_status_inv: u16,
+    pub bat_status_0: u16, // BMS status information
+    pub bat_status_1: u16, // BMS status information
+    pub bat_status_2: u16, // BMS status information
+    pub bat_status_3: u16, // BMS status information
+    pub bat_status_4: u16, // BMS status information
+    pub bat_status_5: u16, // BMS status information
+    pub bat_status_6: u16, // BMS status information
+    pub bat_status_7: u16, // BMS status information
+    pub bat_status_8: u16, // BMS status information
+    pub bat_status_9: u16, // BMS status information
+    pub bat_status_inv: u16, // Inverter summarizes lithium battery status information
 
-    pub bat_count: u16,
-    pub bat_capacity: u16,
+    pub bat_count: u16, // Number of batteries in parallel
+    pub bat_capacity: u16, // Battery capacity (Ah)
 
     #[nom(Parse = "Utils::le_u16_div100")]
-    pub bat_current: f64,
+    pub bat_current: f64, // Battery current
 
     pub bms_event_1: u16, // FaultCode_BMS
     pub bms_event_2: u16, // WarningCode_BMS
 
     // TODO: probably floats but need non-zero sample data to check. just guessing at the div100.
     #[nom(Parse = "Utils::le_u16_div1000")]
-    pub max_cell_voltage: f64,
+    pub max_cell_voltage: f64, // Maximum cell voltage
     #[nom(Parse = "Utils::le_u16_div1000")]
-    pub min_cell_voltage: f64,
+    pub min_cell_voltage: f64, // Minimum cell voltage
     #[nom(Parse = "Utils::le_u16_div10")]
-    pub max_cell_temp: f64,
+    pub max_cell_temp: f64, // Maximum monomer temperature
     #[nom(Parse = "Utils::le_u16_div10")]
-    pub min_cell_temp: f64,
+    pub min_cell_temp: f64, // Minimum monomer temperature
 
-    pub bms_fw_update_state: u16,
+    pub bms_fw_update_state: u16, // 1 for upgrating, 2 for successful, 3 for failed
 
-    pub cycle_count: u16,
+    pub cycle_count: u16, // Number of charge and discharge cycles
 
     #[nom(Parse = "Utils::le_u16_div10")]
-    pub vbat_inv: f64,
+    pub vbat_inv: f64, // Inverter battery voltage sampling
+
+    // temp sensors
+    #[nom(Parse = "Utils::le_u16_div10")]
+    pub t1_temp: u16, // 12K BT temperature
+    #[nom(SkipBefore(8))] // reserved T2-T5 sensors
 
     // 14 bytes I'm not sure what they are; possibly generator stuff
-    #[nom(SkipBefore(14))]
+    #[nom(SkipBefore(4))]
     // following are for influx capability only
     #[nom(Parse = "Utils::current_time_for_nom")]
     pub time: UnixTime,
@@ -326,8 +333,12 @@ pub struct ReadInput2 {
 
     #[nom(SkipBefore(2))] // reserved
     pub runtime: u32,
-    // 18 bytes of auto_test stuff here I'm not doing yet
-    //
+
+    // 12 bytes of auto_test stuff here I'm not doing yet
+    #[nom(SkipBefore(12))] // auto_test stuff, TODO..
+    
+    pub ac_input_type: u16, // 0 for grid, 1 for generator
+
     #[nom(Parse = "Utils::current_time_for_nom")]
     pub time: UnixTime,
     #[nom(Ignore)]
@@ -339,9 +350,9 @@ pub struct ReadInput2 {
 #[nom(LittleEndian)]
 pub struct ReadInput3 {
     #[nom(SkipBefore(2))] // bat_brand, bat_com_type
-    #[nom(Parse = "Utils::le_u16_div100")]
+    #[nom(Parse = "Utils::le_u16_div10")]
     pub max_chg_curr: f64,
-    #[nom(Parse = "Utils::le_u16_div100")]
+    #[nom(Parse = "Utils::le_u16_div10")]
     pub max_dischg_curr: f64,
     #[nom(Parse = "Utils::le_u16_div10")]
     pub charge_volt_ref: f64,
@@ -385,6 +396,10 @@ pub struct ReadInput3 {
 
     #[nom(Parse = "Utils::le_u16_div10")]
     pub vbat_inv: f64,
+
+    // temp sensors
+    #[nom(Parse = "Utils::le_u16_div10")]
+    pub t1_temp: u16, // 12K BT temperature
 
     // following are for influx capability only
     #[nom(Parse = "Utils::current_time_for_nom")]
@@ -481,6 +496,7 @@ impl ReadInputs {
                 t_rad_2: ri2.t_rad_2,
                 t_bat: ri2.t_bat,
                 runtime: ri2.runtime,
+                ac_input_type: ri2.ac_input_type,
                 max_chg_curr: ri3.max_chg_curr,
                 max_dischg_curr: ri3.max_dischg_curr,
                 charge_volt_ref: ri3.charge_volt_ref,
@@ -508,6 +524,7 @@ impl ReadInputs {
                 bms_fw_update_state: ri3.bms_fw_update_state,
                 cycle_count: ri3.cycle_count,
                 vbat_inv: ri3.vbat_inv,
+                t1_temp: ri2.t1_temp,
                 datalog: ri1.datalog,
                 time: ri1.time.clone(),
             }),
@@ -564,7 +581,9 @@ pub enum Register {
 #[repr(u16)]
 pub enum RegisterBit {
     // Register 21
+    OffGridModeEnable = 1 << 0,
     AcChargeEnable = 1 << 7,
+    OffGridSeamlessSwitchingEnable = 1 << 8,
     ForcedDischargeEnable = 1 << 10,
     ChargePriorityEnable = 1 << 11,
 }
@@ -1235,10 +1254,11 @@ impl StatusString {
     pub fn from_value(status: u16) -> &'static str {
         match status {
             0x00 => "Standby",
+            0x01 => "Fault",
             0x02 => "FW Updating",
             0x04 => "PV On-grid",
             0x08 => "PV Charge",
-            0x0C => "PV Charge On-grid",
+            0x0C => "PV Charge & On-grid",
             0x10 => "Battery On-grid",
             0x11 => "Bypass",
             0x14 => "PV & Battery On-grid",
