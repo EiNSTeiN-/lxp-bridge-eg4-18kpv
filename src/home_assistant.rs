@@ -12,7 +12,7 @@ pub enum ValueTemplate {
 }
 impl ValueTemplate {
     pub fn from_default(key: &str) -> Self {
-        Self::String(format!("{{{{ value_json.{} }}}}", key))
+        Self::String("{{ value_json }}".to_string())
     }
     pub fn is_none(&self) -> bool {
         *self == Self::None
@@ -28,6 +28,32 @@ impl Serialize for ValueTemplate {
     {
         match self {
             ValueTemplate::String(str) => serializer.serialize_str(str),
+            _ => unreachable!(),
+        }
+    }
+} // }}}
+
+// StateTopic {{{
+#[derive(Clone, Debug, PartialEq)]
+pub enum StateTopic {
+    Default, // "{namespace}/{datalog}/input/{key}/parsed"
+    String(String),
+}
+impl StateTopic {
+    pub fn from_default(namespace: &str, datalog: Serial, key: &str) -> Self {
+        Self::String(format!("{}/{}/input/{}/parsed", namespace, datalog, key))
+    }
+    pub fn is_default(&self) -> bool {
+        *self == Self::Default
+    }
+}
+impl Serialize for StateTopic {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        match self {
+            StateTopic::String(str) => serializer.serialize_str(str),
             _ => unreachable!(),
         }
     }
@@ -62,7 +88,7 @@ pub struct Entity<'a> {
     unique_id: &'a str, // lxp_XXXX_soc
     name: &'a str,      // really more of a label? for example, "State of Charge"
 
-    state_topic: &'a str,
+    state_topic: StateTopic,
 
     // these are all skipped in the output if None. this lets us use the same struct for
     // different types of entities, just our responsibility to make sure a sane set of attributes
@@ -148,11 +174,7 @@ impl Config {
             value_template: ValueTemplate::Default, // "{{ value_json.$key }}"
             // TODO: might change this to an enum that defaults to InputsAll but can be replaced
             // with a string for a specific topic?
-            state_topic: &format!(
-                "{}/{}/inputs/all",
-                self.mqtt_config.namespace(),
-                self.inverter.datalog()
-            ),
+            state_topic: StateTopic::Default,
             device: self.device(),
             availability: self.availability(),
         };
@@ -206,13 +228,7 @@ impl Config {
             Entity {
                 key: "status",
                 name: "Status",
-                state_topic: &format!(
-                    "{}/{}/input/0/parsed",
-                    self.mqtt_config.namespace(),
-                    self.inverter.datalog()
-                ),
                 device_class: Some("enum"),
-                value_template: ValueTemplate::String("{{ value | string }}".to_string()),
                 ..base.clone()
             },
             Entity {
@@ -227,13 +243,7 @@ impl Config {
                 key: "fault_code",
                 name: "Fault Code",
                 entity_category: Some("diagnostic"),
-                state_topic: &format!(
-                    "{}/{}/input/fault_code/parsed",
-                    self.mqtt_config.namespace(),
-                    self.inverter.datalog()
-                ),
                 device_class: Some("enum"),
-                value_template: ValueTemplate::String("{{ value | string }}".to_string()),
                 icon: Some("mdi:alert"),
                 ..base.clone()
             },
@@ -241,13 +251,7 @@ impl Config {
                 key: "warning_code",
                 name: "Warning Code",
                 entity_category: Some("diagnostic"),
-                state_topic: &format!(
-                    "{}/{}/input/warning_code/parsed",
-                    self.mqtt_config.namespace(),
-                    self.inverter.datalog()
-                ),
                 device_class: Some("enum"),
-                value_template: ValueTemplate::String("{{ value | string }}".to_string()),
                 icon: Some("mdi:alert-outline"),
                 ..base.clone()
             },
@@ -623,11 +627,23 @@ impl Config {
                 if sensor.value_template.is_default() {
                     sensor.value_template = ValueTemplate::from_default(sensor.key);
                 }
+                if sensor.state_topic.is_default() {
+                    sensor.state_topic = StateTopic::from_default(
+                        self.mqtt_config.namespace(),
+                        self.inverter.datalog(),
+                        sensor.key
+                    );
+                }
+
+                let topic = self.ha_discovery_topic("sensor", sensor.key);
+                let payload = serde_json::to_string(&sensor).unwrap();
+
+                debug!("mqtt message payload for home assistant: {} = {}", topic, payload);
 
                 mqtt::Message {
-                    topic: self.ha_discovery_topic("sensor", sensor.key),
+                    topic: topic,
                     retain: true,
-                    payload: serde_json::to_string(&sensor).unwrap(),
+                    payload: payload,
                 }
             })
             .to_vec()

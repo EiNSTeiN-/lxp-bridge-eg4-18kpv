@@ -162,9 +162,9 @@ async fn for_input() {
         mqtt::Message::for_input(packet, false).unwrap(),
         vec![
             mqtt::Message {
-                topic: format!("{}/input/0/parsed", inverter.datalog()),
+                topic: format!("{}/input/status/parsed", inverter.datalog()),
                 retain: false,
-                payload: "Standby".to_owned(),
+                payload: "\"Standby\"".to_owned(),
             },
             mqtt::Message {
                 topic: "2222222222/inputs/1".to_owned(),
@@ -186,20 +186,10 @@ async fn for_input() {
         mqtt::Message::for_input(packet, true).unwrap(),
         vec![
             mqtt::Message {
-                topic: "2222222222/input/0/parsed".to_owned(),
+                topic: "2222222222/input/status/parsed".to_owned(),
                 retain: false,
-                payload: "Standby".to_owned()
-            },
-            mqtt::Message {
-                topic: "2222222222/input/0".to_owned(),
-                retain: false,
-                payload: "0".to_owned()
-            },
-            mqtt::Message {
-                topic: "2222222222/input/1".to_owned(),
-                retain: false,
-                payload: "0".to_owned()
-            },
+                payload: "\"Standby\"".to_owned()
+            }
         ]
     );
 
@@ -243,17 +233,7 @@ async fn for_input_warning_codes() {
             mqtt::Message {
                 topic: "2222222222/input/warning_code/parsed".to_owned(),
                 retain: false,
-                payload: "OK".to_owned()
-            },
-            mqtt::Message {
-                topic: "2222222222/input/62".to_owned(),
-                retain: false,
-                payload: "0".to_owned()
-            },
-            mqtt::Message {
-                topic: "2222222222/input/63".to_owned(),
-                retain: false,
-                payload: "0".to_owned()
+                payload: "\"OK\"".to_owned()
             }
         ]
     );
@@ -272,17 +252,7 @@ async fn for_input_warning_codes() {
             mqtt::Message {
                 topic: "2222222222/input/warning_code/parsed".to_owned(),
                 retain: false,
-                payload: "W031: DCV high".to_owned()
-            },
-            mqtt::Message {
-                topic: "2222222222/input/62".to_owned(),
-                retain: false,
-                payload: "0".to_owned()
-            },
-            mqtt::Message {
-                topic: "2222222222/input/63".to_owned(),
-                retain: false,
-                payload: "32768".to_owned()
+                payload: "\"W031: DCV high\"".to_owned()
             }
         ]
     );
@@ -309,17 +279,7 @@ async fn for_input_fault_codes() {
             mqtt::Message {
                 topic: "2222222222/input/fault_code/parsed".to_owned(),
                 retain: false,
-                payload: "OK".to_owned()
-            },
-            mqtt::Message {
-                topic: "2222222222/input/60".to_owned(),
-                retain: false,
-                payload: "0".to_owned()
-            },
-            mqtt::Message {
-                topic: "2222222222/input/61".to_owned(),
-                retain: false,
-                payload: "0".to_owned()
+                payload: "\"OK\"".to_owned()
             }
         ]
     );
@@ -338,17 +298,7 @@ async fn for_input_fault_codes() {
             mqtt::Message {
                 topic: "2222222222/input/fault_code/parsed".to_owned(),
                 retain: false,
-                payload: "E000: Internal communication fault 1".to_owned()
-            },
-            mqtt::Message {
-                topic: "2222222222/input/60".to_owned(),
-                retain: false,
-                payload: "1".to_owned()
-            },
-            mqtt::Message {
-                topic: "2222222222/input/61".to_owned(),
-                retain: false,
-                payload: "0".to_owned()
+                payload: "\"E000: Internal communication fault 1\"".to_owned()
             }
         ]
     );
@@ -370,6 +320,26 @@ async fn for_input_ignore_127_254() {
     };
 
     assert_eq!(mqtt::Message::for_input(packet, false).unwrap(), vec![
+        mqtt::Message {
+            topic: "2222222222/input/datalog/parsed".to_owned(),
+            retain: false,
+            payload: "\"2222222222\"".to_owned()
+        },
+        mqtt::Message {
+            topic: "2222222222/input/time/parsed".to_owned(),
+            retain: false,
+            payload: "1646370367".to_owned()
+        },
+        mqtt::Message {
+            topic: "2222222222/input/v_eps_l1n/parsed".to_owned(),
+            retain: false,
+            payload: "0.0".to_owned()
+        },
+        mqtt::Message {
+            topic: "2222222222/input/v_eps_l2n/parsed".to_owned(),
+            retain: false,
+            payload: "0.0".to_owned()
+        },
         mqtt::Message {
             topic: "2222222222/inputs/all2".to_owned(),
             retain: false,

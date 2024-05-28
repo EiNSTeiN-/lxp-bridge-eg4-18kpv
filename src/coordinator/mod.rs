@@ -375,7 +375,7 @@ impl Coordinator {
                         // no need for MQTT here, done below
                         self.save_input_all(r_all).await?
                     }
-                    Ok(ReadInput::ReadInputAll2(r_all)) => {
+                    Ok(ReadInput::ReadInputAll2(_r_all)) => {
                         info!("Saving ReadInputAll2");
                         // no need for MQTT here, done below
                         // self.save_input_all2(r_all).await?

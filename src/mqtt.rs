@@ -89,9 +89,9 @@ impl Message {
         for (register, value) in td.pairs() {
             if register == 0 {
                 r.push(mqtt::Message {
-                    topic: format!("{}/input/{}/parsed", td.datalog, register),
+                    topic: format!("{}/input/status/parsed", td.datalog),
                     retain: false,
-                    payload: lxp::packet::StatusString::from_value(value).to_owned(),
+                    payload: serde_json::to_string(lxp::packet::StatusString::from_value(value))?,
                 });
             }
 
@@ -118,7 +118,7 @@ impl Message {
             r.push(mqtt::Message {
                 topic: format!("{}/input/warning_code/parsed", td.datalog),
                 retain: false,
-                payload: lxp::packet::WarningCodeString::from_value(warning_code).to_owned(),
+                payload: serde_json::to_string(lxp::packet::WarningCodeString::from_value(warning_code))?,
             });
         }
 
@@ -126,31 +126,47 @@ impl Message {
             r.push(mqtt::Message {
                 topic: format!("{}/input/fault_code/parsed", td.datalog),
                 retain: false,
-                payload: lxp::packet::FaultCodeString::from_value(fault_code).to_owned(),
+                payload: serde_json::to_string(lxp::packet::FaultCodeString::from_value(fault_code))?,
             });
         }
 
-        if publish_individual {
-            for (register, value) in td.pairs() {
-                r.push(mqtt::Message {
-                    topic: format!("{}/input/{}", td.datalog, register),
-                    retain: false,
-                    payload: serde_json::to_string(&value)?,
-                });
-            }
-        }
-
         match td.read_input() {
-            Ok(ReadInput::ReadInputAll(r_all)) => r.push(mqtt::Message {
-                topic: format!("{}/inputs/all", td.datalog),
-                retain: false,
-                payload: serde_json::to_string(&r_all)?,
-            }),
-            Ok(ReadInput::ReadInputAll2(r_all)) => r.push(mqtt::Message {
-                topic: format!("{}/inputs/all2", td.datalog),
-                retain: false,
-                payload: serde_json::to_string(&r_all)?,
-            }),
+            Ok(ReadInput::ReadInputAll(r_all)) => {
+                // if publish_individual {
+                    let mut data = serde_json::to_value(&r_all).unwrap();
+                    for (key, value) in data.as_object_mut().unwrap() {
+                        if key != "status" && key != "fault_code" && key != "warning_code" {
+                            r.push(mqtt::Message {
+                                topic: format!("{}/input/{}/parsed", td.datalog, key),
+                                retain: false,
+                                payload: value.to_string(),
+                            });
+                        }
+                    }
+                // }
+                r.push(mqtt::Message {
+                    topic: format!("{}/inputs/all", td.datalog),
+                    retain: false,
+                    payload: serde_json::to_string(&r_all)?,
+                });
+            },
+            Ok(ReadInput::ReadInputAll2(r_all)) => {
+                // if publish_individual {
+                    let mut data = serde_json::to_value(&r_all).unwrap();
+                    for (key, value) in data.as_object_mut().unwrap() {
+                        r.push(mqtt::Message {
+                            topic: format!("{}/input/{}/parsed", td.datalog, key),
+                            retain: false,
+                            payload: value.to_string(),
+                        });
+                    }
+                // }
+                r.push(mqtt::Message {
+                    topic: format!("{}/inputs/all2", td.datalog),
+                    retain: false,
+                    payload: serde_json::to_string(&r_all)?,
+                });
+            },
             Ok(ReadInput::ReadInput1(r1)) => r.push(mqtt::Message {
                 topic: format!("{}/inputs/1", td.datalog),
                 retain: false,
