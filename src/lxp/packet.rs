@@ -7,6 +7,7 @@ use serde::Serialize;
 
 pub enum ReadInput {
     ReadInputAll(Box<ReadInputAll>),
+    ReadInputAll2(Box<ReadInputAll2>),
     ReadInput1(ReadInput1),
     ReadInput2(ReadInput2),
     ReadInput3(ReadInput3),
@@ -211,6 +212,22 @@ pub struct ReadInputAll {
     #[nom(Ignore)]
     pub datalog: Serial,
 } // }}}
+
+// {{{ ReadInputAll2
+    #[derive(PartialEq, Clone, Debug, Serialize, Nom)]
+    #[nom(LittleEndian)]
+    pub struct ReadInputAll2 {
+        #[nom(Parse = "Utils::le_u16_div10")]
+        pub v_eps_l1n: f64, // Voltage of EPS L1N
+        #[nom(Parse = "Utils::le_u16_div10")]
+        pub v_eps_l2n: f64, // Voltage of EPS L2N
+    
+        #[nom(Parse = "Utils::current_time_for_nom")]
+        pub time: UnixTime,
+        #[nom(Ignore)]
+        pub datalog: Serial,
+    } // }}}
+    
 
 // {{{ ReadInput1
 #[derive(Clone, Debug, Serialize, Nom)]
@@ -827,6 +844,7 @@ impl TranslatedData {
         match (self.register, self.values.len()) {
             (0, 254) => Ok(ReadInput::ReadInputAll(Box::new(self.read_input_all()?))),
             // (127, 254) has been seen but containing all zeroes, not sure what they are
+            (127, 254) => Ok(ReadInput::ReadInputAll2(Box::new(self.read_input_all2()?))),
             (0, 80) => Ok(ReadInput::ReadInput1(self.read_input1()?)),
             (40, 80) => Ok(ReadInput::ReadInput2(self.read_input2()?)),
             (80, 80) => Ok(ReadInput::ReadInput3(self.read_input3()?)),
@@ -846,6 +864,21 @@ impl TranslatedData {
                 Ok(r)
             }
             Err(_) => Err(anyhow!("read_input_all err")),
+        }
+    }
+
+    fn read_input_all2(&self) -> Result<ReadInputAll2> {
+        match ReadInputAll2::parse(&self.values) {
+            Ok((_, mut r)) => {
+                // r.p_pv = r.p_pv_1 + r.p_pv_2 + r.p_pv_3;
+                // r.p_grid = r.p_to_user as i32 - r.p_to_grid as i32;
+                // r.p_battery = r.p_charge as i32 - r.p_discharge as i32;
+                // r.e_pv_day = Utils::round(r.e_pv_day_1 + r.e_pv_day_2 + r.e_pv_day_3, 1);
+                // r.e_pv_all = Utils::round(r.e_pv_all_1 + r.e_pv_all_2 + r.e_pv_all_3, 1);
+                r.datalog = self.datalog;
+                Ok(r)
+            }
+            Err(_) => Err(anyhow!("read_input_all2 err")),
         }
     }
 

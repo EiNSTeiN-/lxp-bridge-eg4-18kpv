@@ -371,15 +371,28 @@ impl Coordinator {
 
                 match td.read_input() {
                     Ok(ReadInput::ReadInputAll(r_all)) => {
+                        info!("Saving ReadInputAll");
                         // no need for MQTT here, done below
                         self.save_input_all(r_all).await?
                     }
+                    Ok(ReadInput::ReadInputAll2(r_all)) => {
+                        info!("Saving ReadInputAll2");
+                        // no need for MQTT here, done below
+                        // self.save_input_all2(r_all).await?
+                    }
 
-                    Ok(ReadInput::ReadInput1(r1)) => entry.set_read_input_1(r1),
-                    Ok(ReadInput::ReadInput2(r2)) => entry.set_read_input_2(r2),
+                    Ok(ReadInput::ReadInput1(r1)) => {
+                        info!("Saving ReadInput1");
+                        entry.set_read_input_1(r1);
+                    },
+                    Ok(ReadInput::ReadInput2(r2)) => {
+                        info!("Saving ReadInput2");
+                        entry.set_read_input_2(r2);
+                    },
                     Ok(ReadInput::ReadInput3(r3)) => {
                         let datalog = r3.datalog;
 
+                        info!("Saving ReadInput3");
                         entry.set_read_input_3(r3);
 
                         if let Some(input) = entry.to_input_all() {

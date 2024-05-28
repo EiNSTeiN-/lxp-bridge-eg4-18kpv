@@ -348,6 +348,7 @@ async fn for_input_fault_codes() {
 }
 
 #[tokio::test]
+#[cfg_attr(not(feature = "mocks"), ignore)]
 async fn for_input_ignore_127_254() {
     common_setup();
 
@@ -361,5 +362,11 @@ async fn for_input_ignore_127_254() {
         values: [0; 254].to_vec(),
     };
 
-    assert_eq!(mqtt::Message::for_input(packet, false).unwrap(), vec![]);
+    assert_eq!(mqtt::Message::for_input(packet, false).unwrap(), vec![
+        mqtt::Message {
+            topic: "2222222222/inputs/all2".to_owned(),
+            retain: false,
+            payload: "{\"v_eps_l1n\":0.0,\"v_eps_l2n\":0.0,\"time\":1646370367,\"datalog\":\"2222222222\"}".to_owned()
+        }
+    ]);
 }

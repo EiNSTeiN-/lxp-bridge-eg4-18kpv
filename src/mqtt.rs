@@ -144,6 +144,11 @@ impl Message {
                 retain: false,
                 payload: serde_json::to_string(&r_all)?,
             }),
+            Ok(ReadInput::ReadInputAll2(r_all)) => r.push(mqtt::Message {
+                topic: format!("{}/inputs/all2", td.datalog),
+                retain: false,
+                payload: serde_json::to_string(&r_all)?,
+            }),
             Ok(ReadInput::ReadInput1(r1)) => r.push(mqtt::Message {
                 topic: format!("{}/inputs/1", td.datalog),
                 retain: false,
