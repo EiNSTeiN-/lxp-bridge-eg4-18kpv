@@ -72,7 +72,7 @@ async fn all_has_fault_code() {
     assert!(r.unwrap().contains(&mqtt::Message {
         topic: "homeassistant/sensor/lxp_2222222222/fault_code/config".to_string(),
         retain: true,
-        payload: r#"{"unique_id":"lxp_2222222222_fault_code","name":"Fault Code","state_topic":"lxp/2222222222/input/fault_code/parsed","entity_category":"diagnostic","value_template":"{{ value | string }}","icon":"mdi:alert","device":{"manufacturer":"LuxPower","name":"lxp_2222222222","identifiers":["lxp_2222222222"]},"availability":{"topic":"lxp/LWT"}}"#.to_string()
+        payload: r#"{"unique_id":"lxp_2222222222_fault_code","name":"Fault Code","state_topic":"lxp/2222222222/input/fault_code/parsed","entity_category":"diagnostic","device_class":"enum","value_template":"{{ value | string }}","icon":"mdi:alert","device":{"manufacturer":"LuxPower","name":"lxp_2222222222","identifiers":["lxp_2222222222"]},"availability":{"topic":"lxp/LWT"}}"#.to_string()
     }));
 }
 
@@ -102,7 +102,7 @@ async fn all_has_number_ac_charge_soc_limit_pct() {
     assert!(r.unwrap().contains(&mqtt::Message {
         topic: "homeassistant/number/lxp_2222222222/AcChargeSocLimit/config".to_string(),
         retain: true,
-        payload: r#"{"name":"AC Charge Limit %","state_topic":"lxp/2222222222/hold/67","command_topic":"lxp/cmd/2222222222/set/hold/67","value_template":"{{ float(value) }}","unique_id":"lxp_2222222222_number_AcChargeSocLimit","device":{"manufacturer":"LuxPower","name":"lxp_2222222222","identifiers":["lxp_2222222222"]},"availability":{"topic":"lxp/LWT"},"min":0.0,"max":100.0,"step":1.0,"unit_of_measurement":"%"}"#.to_string()
+        payload: r#"{"name":"AC Charge Limit %","state_topic":"lxp/2222222222/hold/67","command_topic":"lxp/cmd/2222222222/set/hold/67","value_template":"{{ float(value) }}","unique_id":"lxp_2222222222_number_AcChargeSocLimit","device":{"manufacturer":"LuxPower","name":"lxp_2222222222","identifiers":["lxp_2222222222"]},"availability":{"topic":"lxp/LWT"},"min":0.0,"max":200.0,"step":1.0,"unit_of_measurement":"%"}"#.to_string()
     }));
 }
 

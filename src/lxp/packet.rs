@@ -191,8 +191,20 @@ pub struct ReadInputAll {
     pub t1_temp: f64, // 12K BT temperature
     #[nom(SkipBefore(8))] // reserved T2-T5 sensors
 
-    // 14 bytes I'm not sure what they are; possibly generator stuff
-    #[nom(SkipBefore(4))]
+    #[nom(SkipBefore(14))] // unspecified
+
+    // something about half bus voltage
+    #[nom(SkipBefore(2))]
+    #[nom(Parse = "Utils::le_u16_div10")]
+    pub v_gen: f64, // generator voltage
+    #[nom(Parse = "Utils::le_u16_div100")]
+    pub f_gen: f64, // generator frequency
+    pub p_gen: u16, // generator power
+    #[nom(Parse = "Utils::le_u16_div10")]
+    pub e_gen_day: f64, // daily generator energy
+    #[nom(Parse = "Utils::le_u32_div10")]
+    pub e_gen_all: f64, // cumulative generator energy
+
     // following are for influx capability only
     #[nom(Parse = "Utils::current_time_for_nom")]
     pub time: UnixTime,
@@ -400,6 +412,9 @@ pub struct ReadInput3 {
     // temp sensors
     #[nom(Parse = "Utils::le_u16_div10")]
     pub t1_temp: f64, // 12K BT temperature
+    #[nom(SkipBefore(8))] // reserved T2-T5 sensors
+
+    #[nom(SkipBefore(14))] // unspecified
 
     // following are for influx capability only
     #[nom(Parse = "Utils::current_time_for_nom")]
@@ -525,6 +540,11 @@ impl ReadInputs {
                 cycle_count: ri3.cycle_count,
                 vbat_inv: ri3.vbat_inv,
                 t1_temp: ri3.t1_temp,
+                v_gen: 0.0,
+                f_gen: 0.0,
+                p_gen: 0,
+                e_gen_day: 0.0,
+                e_gen_all: 0.0,
                 datalog: ri1.datalog,
                 time: ri1.time.clone(),
             }),

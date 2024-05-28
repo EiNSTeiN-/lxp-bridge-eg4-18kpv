@@ -211,6 +211,7 @@ impl Config {
                     self.mqtt_config.namespace(),
                     self.inverter.datalog()
                 ),
+                device_class: Some("enum"),
                 value_template: ValueTemplate::String("{{ value | string }}".to_string()),
                 ..base.clone()
             },
@@ -231,6 +232,7 @@ impl Config {
                     self.mqtt_config.namespace(),
                     self.inverter.datalog()
                 ),
+                device_class: Some("enum"),
                 value_template: ValueTemplate::String("{{ value | string }}".to_string()),
                 icon: Some("mdi:alert"),
                 ..base.clone()
@@ -244,6 +246,7 @@ impl Config {
                     self.mqtt_config.namespace(),
                     self.inverter.datalog()
                 ),
+                device_class: Some("enum"),
                 value_template: ValueTemplate::String("{{ value | string }}".to_string()),
                 icon: Some("mdi:alert-outline"),
                 ..base.clone()
@@ -276,6 +279,16 @@ impl Config {
             Entity {
                 key: "v_eps_r",
                 name: "EPS Voltage",
+                ..voltage.clone()
+            },
+            Entity {
+                key: "v_bus_1",
+                name: "Bus 1 Voltage",
+                ..voltage.clone()
+            },
+            Entity {
+                key: "v_bus_1",
+                name: "Bus 2 Voltage",
                 ..voltage.clone()
             },
             Entity {
@@ -491,6 +504,11 @@ impl Config {
                 ..temperature.clone()
             },
             Entity {
+                key: "t1_temp",
+                name: "12K BT Temperature",
+                ..temperature.clone()
+            },
+            Entity {
                 key: "max_chg_curr",
                 name: "Max Charge Current",
                 ..current.clone()
@@ -506,6 +524,34 @@ impl Config {
                 ..voltage.clone()
             },
             Entity {
+                key: "charge_volt_ref",
+                name: "Recommended Charge Voltage (BMS)",
+                ..voltage.clone()
+            },
+            Entity {
+                key: "dischg_cut_volt",
+                name: "Recommended Discharge Cut-Off Voltage (BMS)",
+                ..voltage.clone()
+            },
+            Entity {
+                key: "bat_count",
+                name: "Battery Count",
+                state_class: Some("measurement"),
+                ..base.clone()
+            },
+            Entity {
+                key: "bat_capacity",
+                name: "Battery Capacity",
+                state_class: Some("measurement"),
+                unit_of_measurement: Some("Ah"),
+                ..base.clone()
+            },
+            Entity {
+                key: "bat_current",
+                name: "Battery Current",
+                ..current.clone()
+            },
+            Entity {
                 key: "max_cell_voltage",
                 name: "Max Cell Voltage (BMS)",
                 ..voltage.clone()
@@ -519,6 +565,42 @@ impl Config {
                 key: "max_cell_temp",
                 name: "Max Cell Temperature (BMS)",
                 ..temperature.clone()
+            },
+            Entity {
+                key: "cycle_count",
+                name: "Battery Charge Discharge Cycles",
+                state_class: Some("measurement"),
+                ..base.clone()
+            },
+            Entity {
+                key: "vbat_inv",
+                name: "Inverter Battery Voltage Sampling",
+                ..temperature.clone()
+            },
+            Entity {
+                key: "v_gen",
+                name: "Generator Voltage",
+                ..voltage.clone()
+            },
+            Entity {
+                key: "f_gen",
+                name: "Generator Frequency",
+                ..frequency.clone()
+            },
+            Entity {
+                key: "p_gen",
+                name: "Generator Power",
+                ..power.clone()
+            },
+            Entity {
+                key: "e_gen_day",
+                name: "Generator Energy (Today)",
+                ..energy.clone()
+            },
+            Entity {
+                key: "e_gen_all",
+                name: "Generator Energy (All Time)",
+                ..energy.clone()
             },
             Entity {
                 key: "runtime",
@@ -654,7 +736,7 @@ impl Config {
             device: self.device(),
             availability: self.availability(),
             min: 0.0,
-            max: 100.0,
+            max: 200.0, // some values return 120%, maybe related to fast charge?
             step: 1.0,
             unit_of_measurement: "%".to_string(),
         };

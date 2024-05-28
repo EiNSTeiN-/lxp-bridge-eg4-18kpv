@@ -232,6 +232,11 @@ impl Factory {
             cycle_count: 200,
             vbat_inv: 5.4,
             t1_temp: 19.2,
+            v_gen: 11.2,
+            f_gen: 62.13,
+            p_gen: 181,
+            e_gen_day: 31.13,
+            e_gen_all: 41.12,
             time: UnixTime::now(),
             datalog: Serial::from_str("1234567890").unwrap(),
         }
