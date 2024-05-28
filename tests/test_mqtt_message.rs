@@ -320,30 +320,17 @@ async fn for_input_ignore_127_254() {
     };
 
     assert_eq!(mqtt::Message::for_input(packet, false).unwrap(), vec![
-        mqtt::Message {
-            topic: "2222222222/input/datalog/parsed".to_owned(),
-            retain: false,
-            payload: "\"2222222222\"".to_owned()
-        },
-        mqtt::Message {
-            topic: "2222222222/input/time/parsed".to_owned(),
-            retain: false,
-            payload: "1646370367".to_owned()
-        },
-        mqtt::Message {
-            topic: "2222222222/input/v_eps_l1n/parsed".to_owned(),
-            retain: false,
-            payload: "0.0".to_owned()
-        },
-        mqtt::Message {
-            topic: "2222222222/input/v_eps_l2n/parsed".to_owned(),
-            retain: false,
-            payload: "0.0".to_owned()
-        },
-        mqtt::Message {
-            topic: "2222222222/inputs/all2".to_owned(),
-            retain: false,
-            payload: "{\"v_eps_l1n\":0.0,\"v_eps_l2n\":0.0,\"time\":1646370367,\"datalog\":\"2222222222\"}".to_owned()
-        }
+        mqtt::Message { topic: "2222222222/input/datalog/parsed".to_owned(), retain: false, payload: "\"2222222222\"".to_owned() },
+        mqtt::Message { topic: "2222222222/input/e_eps_l1_all/parsed".to_owned(), retain: false, payload: "0.0".to_owned() },
+        mqtt::Message { topic: "2222222222/input/e_eps_l1_day/parsed".to_owned(), retain: false, payload: "0.0".to_owned() },
+        mqtt::Message { topic: "2222222222/input/e_eps_l2_all/parsed".to_owned(), retain: false, payload: "0.0".to_owned() },
+        mqtt::Message { topic: "2222222222/input/e_eps_l2_day/parsed".to_owned(), retain: false, payload: "0.0".to_owned() },
+        mqtt::Message { topic: "2222222222/input/p_eps_l1/parsed".to_owned(), retain: false, payload: "0".to_owned() },
+        mqtt::Message { topic: "2222222222/input/p_eps_l2/parsed".to_owned(), retain: false, payload: "0".to_owned() },
+        mqtt::Message { topic: "2222222222/input/s_eps_l1/parsed".to_owned(), retain: false, payload: "0".to_owned() },
+        mqtt::Message { topic: "2222222222/input/s_eps_l2/parsed".to_owned(), retain: false, payload: "0".to_owned() },
+        mqtt::Message { topic: "2222222222/input/time/parsed".to_owned(), retain: false, payload: "1646370367".to_owned() },
+        mqtt::Message { topic: "2222222222/input/v_eps_l1/parsed".to_owned(), retain: false, payload: "0.0".to_owned() },
+        mqtt::Message { topic: "2222222222/input/v_eps_l2/parsed".to_owned(), retain: false, payload: "0.0".to_owned() }
     ]);
 }

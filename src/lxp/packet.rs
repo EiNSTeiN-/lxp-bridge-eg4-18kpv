@@ -218,10 +218,23 @@ pub struct ReadInputAll {
     #[nom(LittleEndian)]
     pub struct ReadInputAll2 {
         #[nom(Parse = "Utils::le_u16_div10")]
-        pub v_eps_l1n: f64, // Voltage of EPS L1N
+        pub v_eps_l1: f64, // Voltage of EPS L1N
         #[nom(Parse = "Utils::le_u16_div10")]
-        pub v_eps_l2n: f64, // Voltage of EPS L2N
+        pub v_eps_l2: f64, // Voltage of EPS L2N
     
+        pub p_eps_l1: u16, // Active power of EPS L1N
+        pub p_eps_l2: u16, // Active power of EPS L2N
+        pub s_eps_l1: u16, // Apparent power of EPS L1N
+        pub s_eps_l2: u16, // Apparent power of EPS L2N
+        #[nom(Parse = "Utils::le_u16_div10")]
+        pub e_eps_l1_day: f64, // Daily energy of EPS L1N
+        #[nom(Parse = "Utils::le_u16_div10")]
+        pub e_eps_l2_day: f64, // Daily energy of EPS L2N
+        #[nom(Parse = "Utils::le_u32_div10")]
+        pub e_eps_l1_all: f64, // Total EPS L1N energy
+        #[nom(Parse = "Utils::le_u32_div10")]
+        pub e_eps_l2_all: f64, // Total EPS L2N energy
+
         #[nom(Parse = "Utils::current_time_for_nom")]
         pub time: UnixTime,
         #[nom(Ignore)]

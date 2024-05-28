@@ -296,6 +296,16 @@ impl Config {
                 ..voltage.clone()
             },
             Entity {
+                key: "v_eps_l1",
+                name: "EPS Voltage L1",
+                ..voltage.clone()
+            },
+            Entity {
+                key: "v_eps_l2",
+                name: "EPS Voltage L2",
+                ..voltage.clone()
+            },
+            Entity {
                 key: "f_ac",
                 name: "Grid Frequency",
                 ..frequency.clone()
@@ -308,6 +318,20 @@ impl Config {
             Entity {
                 key: "s_eps",
                 name: "Apparent EPS Power",
+                device_class: Some("apparent_power"),
+                unit_of_measurement: Some("VA"),
+                ..power.clone()
+            },
+            Entity {
+                key: "s_eps_l1",
+                name: "Apparent EPS Power L1",
+                device_class: Some("apparent_power"),
+                unit_of_measurement: Some("VA"),
+                ..power.clone()
+            },
+            Entity {
+                key: "s_eps_l2",
+                name: "Apparent EPS Power L2",
                 device_class: Some("apparent_power"),
                 unit_of_measurement: Some("VA"),
                 ..power.clone()
@@ -375,6 +399,16 @@ impl Config {
             Entity {
                 key: "p_rec",
                 name: "AC Charge Power",
+                ..power.clone()
+            },
+            Entity {
+                key: "p_eps_l1",
+                name: "EPS Power L1",
+                ..power.clone()
+            },
+            Entity {
+                key: "p_eps_l2",
+                name: "EPS Power L2",
                 ..power.clone()
             },
             Entity {
@@ -485,6 +519,26 @@ impl Config {
             Entity {
                 key: "e_inv_day",
                 name: "Energy of Inverter (Today)",
+                ..energy.clone()
+            },
+            Entity {
+                key: "e_eps_l1_all",
+                name: "Energy of EPS L1 (All time)",
+                ..energy.clone()
+            },
+            Entity {
+                key: "e_eps_l1_day",
+                name: "Energy of EPS L1  (Today)",
+                ..energy.clone()
+            },
+            Entity {
+                key: "e_eps_l2_all",
+                name: "Energy of EPS L2 (All time)",
+                ..energy.clone()
+            },
+            Entity {
+                key: "e_eps_l2_day",
+                name: "Energy of EPS L2  (Today)",
                 ..energy.clone()
             },
             Entity {
