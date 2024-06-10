@@ -16,7 +16,7 @@ impl ValueTemplate {
         Self::String("{{ value_json }}".to_string())
     }
     pub fn from_key(key: &str) -> Self {
-        Self::String(format!("{{ value_json.{} }}", key))
+        Self::String(format!("{{{{ value_json.{} }}}}", key))
     }
     pub fn is_none(&self) -> bool {
         *self == Self::None
@@ -751,6 +751,26 @@ impl Config {
                 ..energy.clone()
             },
             Entity {
+                key: "e_gen_day",
+                name: "Energy of Generator (Today)",
+                ..energy.clone()
+            },
+            Entity {
+                key: "e_gen_all",
+                name: "Energy of Generator (All Time)",
+                ..energy.clone()
+            },
+            Entity {
+                key: "e_load_day",
+                name: "Energy of Load (Today)",
+                ..energy.clone()
+            },
+            Entity {
+                key: "e_load_all",
+                name: "Energy of Load (All Time)",
+                ..energy.clone()
+            },
+            Entity {
                 key: "eps_overload_ctrl_time",
                 name: "EPS Overload Connect Time",
                 entity_category: Some("diagnostic"),
@@ -868,16 +888,6 @@ impl Config {
                 ..power.clone()
             },
             Entity {
-                key: "e_gen_day",
-                name: "Generator Energy (Today)",
-                ..energy.clone()
-            },
-            Entity {
-                key: "e_gen_all",
-                name: "Generator Energy (All Time)",
-                ..energy.clone()
-            },
-            Entity {
                 key: "p_on_grid_load",
                 name: "On-grid Load Power",
                 ..power.clone()
@@ -891,16 +901,6 @@ impl Config {
                 key: "p_load",
                 name: "Load Power",
                 ..power.clone()
-            },
-            Entity {
-                key: "e_load_day",
-                name: "Load Energy (Today)",
-                ..energy.clone()
-            },
-            Entity {
-                key: "e_load_all",
-                name: "Load Energy (All Time)",
-                ..energy.clone()
             },
 
             Entity {
