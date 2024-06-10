@@ -235,6 +235,14 @@ pub struct ReadInputAll {
         #[nom(Parse = "Utils::le_u32_div10")]
         pub e_eps_l2_all: f64, // Total EPS L2N energy
 
+        #[nom(SkipBefore(62))] // 139 to 169
+
+        pub p_load: u16, // Load power for on-grid mode
+        #[nom(Parse = "Utils::le_u16_div10")]
+        pub e_load_day: f64, // Daily energy of loads
+        #[nom(Parse = "Utils::le_u32_div10")]
+        pub e_load_all: f64, // Cumulative energy of loads
+
         #[nom(Parse = "Utils::current_time_for_nom")]
         pub time: UnixTime,
         #[nom(Ignore)]
@@ -1332,6 +1340,7 @@ impl StatusString {
             0x20 => "AC Charge",
             0x28 => "PV & AC Charge",
             0x40 => "Battery Off-grid",
+            0x60 => "Off-grid & AC-coupled battery charging",
             0x80 => "PV Off-grid",
             0xC0 => "PV & Battery Off-grid",
             0x88 => "PV Charge Off-grid",
