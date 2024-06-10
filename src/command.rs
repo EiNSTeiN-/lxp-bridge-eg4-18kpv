@@ -21,7 +21,7 @@ pub enum Command {
     AcCharge(config::Inverter, bool),
     ChargePriority(config::Inverter, bool),
     ForcedDischarge(config::Inverter, bool),
-    AcChargePower(config::Inverter, u16),
+    AcChargeRate(config::Inverter, u16),
     AcChargeSocLimit(config::Inverter, u16),
     DischargeCutoffSocLimit(config::Inverter, u16),
 }
@@ -76,7 +76,7 @@ impl Command {
             ForcedDischarge(inverter, _) => format!("{}/set/forced_discharge", inverter.datalog()),
             ChargeRate(inverter, _) => format!("{}/set/charge_rate_pct", inverter.datalog()),
             DischargeRate(inverter, _) => format!("{}/set/discharge_rate_pct", inverter.datalog()),
-            AcChargePower(inverter, _) => format!("{}/set/ac_charge_power", inverter.datalog()),
+            AcChargeRate(inverter, _) => format!("{}/set/ac_charge_rate_pct", inverter.datalog()),
             AcChargeSocLimit(inverter, _) => {
                 format!("{}/set/ac_charge_soc_limit_pct", inverter.datalog())
             }
