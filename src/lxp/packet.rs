@@ -136,7 +136,7 @@ pub struct ReadInputAll {
     #[nom(SkipBefore(2))] // reserved - radiator 3?
     pub runtime: u32,
     pub register_71: u16, // auto test result bits
-    #[nom(SkipBefore(8))] // 72-75 auto_test stuff, TODO..
+    #[nom(SkipBefore(10))] // 72-76 auto_test stuff, TODO..
     pub register_77: u16, // AC couple status
     #[nom(SkipBefore(4))] // 78-79 unspecified
     #[nom(SkipBefore(2))] // bat_brand, bat_com_type
