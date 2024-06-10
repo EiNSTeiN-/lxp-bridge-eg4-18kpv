@@ -135,10 +135,10 @@ pub struct ReadInputAll {
     pub t_bat: i16, // Battery temperature
     #[nom(SkipBefore(2))] // reserved - radiator 3?
     pub runtime: u32,
-    // 18 bytes of auto_test stuff here I'm not doing yet
-    #[nom(SkipBefore(12))] // auto_test stuff, TODO..
-    pub ac_input_type: u16, // 0 for grid, 1 for generator
-    #[nom(SkipBefore(4))] // unspecified
+    pub register_71: u16, // auto test result bits
+    #[nom(SkipBefore(8))] // 72-75 auto_test stuff, TODO..
+    pub register_77: u16, // AC couple status
+    #[nom(SkipBefore(4))] // 78-79 unspecified
     #[nom(SkipBefore(2))] // bat_brand, bat_com_type
     #[nom(Parse = "Utils::le_u16_div10")]
     pub max_chg_curr: f64, // BMS limited maximum charging current
@@ -190,12 +190,15 @@ pub struct ReadInputAll {
     // temp sensors
     #[nom(Parse = "Utils::le_u16_div10")]
     pub t1_temp: f64, // 12K BT temperature
-    #[nom(SkipBefore(8))] // reserved T2-T5 sensors
+    #[nom(SkipBefore(8))] // 109-112 reserved T2-T5 sensors
 
-    #[nom(SkipBefore(14))] // unspecified
+    pub register_113: u16, // phase config bits
+    pub p_on_grid_load: u16, // Load power of the inverter when it is not off-grid
 
-    // something about half bus voltage
-    #[nom(SkipBefore(2))]
+    #[nom(SkipBefore(10))] // 115-119 serial number
+
+    #[nom(Parse = "Utils::le_u16_div10")]
+    pub v_half_bus: f64, // Half bus voltage
     #[nom(Parse = "Utils::le_u16_div10")]
     pub v_gen: f64, // generator voltage
     #[nom(Parse = "Utils::le_u16_div100")]
@@ -235,13 +238,77 @@ pub struct ReadInputAll {
         #[nom(Parse = "Utils::le_u32_div10")]
         pub e_eps_l2_all: f64, // Total EPS L2N energy
 
-        #[nom(SkipBefore(62))] // 139 to 169
+        #[nom(SkipBefore(2))] // 139 Qinv
+
+        pub afci_ch1_current: u16, // AFCI current (mA)
+        pub afci_ch2_current: u16, // AFCI current (mA)
+        pub afci_ch3_current: u16, // AFCI current (mA)
+        pub afci_ch4_current: u16, // AFCI current (mA)
+
+        pub register_144: u16, // AFCI flag
+
+        pub afci_arc_ch1: u16, // Real time arc of channel 1
+        pub afci_arc_ch2: u16, // Real time arc of channel 2
+        pub afci_arc_ch3: u16, // Real time arc of channel 3
+        pub afci_arc_ch4: u16, // Real time arc of channel 4
+
+        pub afci_max_arc_ch1: u16, // Max arc of channel 1
+        pub afci_max_arc_ch2: u16, // Max arc of channel 2
+        pub afci_max_arc_ch3: u16, // Max arc of channel 3
+        pub afci_max_arc_ch4: u16, // Max arc of channel 4
+
+        pub p_ac_couple: u16, // AC Coupled inverter power
+
+        #[nom(SkipBefore(16))] // 154 to 161 Auto Test Trip Value 0-7
+        #[nom(SkipBefore(16))] // 162 to 169 Auto Test Trip Time 0-7
 
         pub p_load: u16, // Load power for on-grid mode
         #[nom(Parse = "Utils::le_u16_div10")]
         pub e_load_day: f64, // Daily energy of loads
         #[nom(Parse = "Utils::le_u32_div10")]
         pub e_load_all: f64, // Cumulative energy of loads
+
+        #[nom(SkipBefore(2))] // 174 Safety Switch State
+    
+        pub eps_overload_ctrl_time: u16, // Connect in xx S after triggering the EPS overload issue
+
+        #[nom(SkipBefore(8))] // 176-179
+
+        pub p_inv_s: u16, // On grid inverter power of three phase: S phase
+        pub p_inv_t: u16, // On grid inverter power of three phase: T phase
+        pub p_rec_s: u16, // Charging rectification power of three phase: S phase
+        pub p_rec_t: u16, // Charging rectification power of three phase: T phase
+        pub p_to_grid_s: u16, // User on-grid power of three phase: S phase
+        pub p_to_grid_t: u16, // User on-grid power of three phase: T phase
+        pub p_to_user_s: u16, // Grid supply power of three phase: S phase
+        pub p_to_user_t: u16, // Grid supply power of three phase: T phase
+        pub p_gen_s: u16, // Power of generator for three phase: S phase
+        pub p_gen_t: u16, // Power of generator for three phase: T phase
+        #[nom(Parse = "Utils::le_u16_div100")]
+        pub inv_rms_curr_s: f64, // Effective value of three phase inverter current: S phase
+        #[nom(Parse = "Utils::le_u16_div100")]
+        pub inv_rms_curr_t: f64, // Effective value of three phase inverter current: T phase
+
+        #[nom(Parse = "Utils::le_i16_div1000")]
+        pub pf_s: f64, // Power factor of phase S in three-phase inverter (signed)
+        #[nom(Parse = "Utils::le_i16_div10")]
+        pub v_grid_l1: f64, // Voltage of Grid L1N (signed)
+        #[nom(Parse = "Utils::le_i16_div10")]
+        pub v_grid_l2: f64, // Voltage of Grid L2N (signed)
+        #[nom(Parse = "Utils::le_i16_div10")]
+        pub v_gen_l1: f64, // Voltage of Gen L1N (signed)
+        #[nom(Parse = "Utils::le_i16_div10")]
+        pub v_gen_l2: f64, // Voltage of Gen L2N (signed)
+        pub p_inv_l1: i16, // Inverting power of phase L1N (signed)
+        pub p_inv_l2: i16, // Inverting power of phase L2N (signed)
+        pub p_rec_l1: i16, // Rectifying power of phase L1N (signed)
+        pub p_rec_l2: i16, // Rectifying power of phase L2N (signed)
+        pub p_to_grid_l1: u16, // Grid export power of phase L1N
+        pub p_to_grid_l2: u16, // Grid export power of phase L2N
+        pub p_to_user_l1: u16, // Grid import power of phase L1N
+        pub p_to_user_l2: u16, // Grid import power of phase L2N
+        #[nom(Parse = "Utils::le_i16_div1000")]
+        pub pf_t: f64, // Power factor of phase T in three-phase inverter
 
         #[nom(Parse = "Utils::current_time_for_nom")]
         pub time: UnixTime,
@@ -383,11 +450,9 @@ pub struct ReadInput2 {
 
     #[nom(SkipBefore(2))] // reserved
     pub runtime: u32,
-
-    // 12 bytes of auto_test stuff here I'm not doing yet
-    #[nom(SkipBefore(12))] // auto_test stuff, TODO..
-    
-    pub ac_input_type: u16, // 0 for grid, 1 for generator
+    pub register_71: u16, // auto test result bits
+    #[nom(SkipBefore(8))] // 72-75 auto_test stuff, TODO..
+    pub register_77: u16, // AC couple status
 
     #[nom(Parse = "Utils::current_time_for_nom")]
     pub time: UnixTime,
@@ -450,9 +515,12 @@ pub struct ReadInput3 {
     // temp sensors
     #[nom(Parse = "Utils::le_u16_div10")]
     pub t1_temp: f64, // 12K BT temperature
-    #[nom(SkipBefore(8))] // reserved T2-T5 sensors
+    #[nom(SkipBefore(8))] // 109-112 reserved T2-T5 sensors
 
-    #[nom(SkipBefore(14))] // unspecified
+    pub register_113: u16, // phase config bits
+    pub p_on_grid_load: u16, // Load power of the inverter when it is not off-grid
+
+    #[nom(SkipBefore(10))] // 115-119 serial number
 
     // following are for influx capability only
     #[nom(Parse = "Utils::current_time_for_nom")]
@@ -549,7 +617,8 @@ impl ReadInputs {
                 t_rad_2: ri2.t_rad_2,
                 t_bat: ri2.t_bat,
                 runtime: ri2.runtime,
-                ac_input_type: ri2.ac_input_type,
+                register_71: ri2.register_71,
+                register_77: ri2.register_77,
                 max_chg_curr: ri3.max_chg_curr,
                 max_dischg_curr: ri3.max_dischg_curr,
                 charge_volt_ref: ri3.charge_volt_ref,
@@ -578,6 +647,9 @@ impl ReadInputs {
                 cycle_count: ri3.cycle_count,
                 vbat_inv: ri3.vbat_inv,
                 t1_temp: ri3.t1_temp,
+                register_113: ri3.register_113,
+                p_on_grid_load: ri3.p_on_grid_load,
+                v_half_bus: 0.0,
                 v_gen: 0.0,
                 f_gen: 0.0,
                 p_gen: 0,
@@ -645,6 +717,169 @@ pub enum RegisterBit {
     ForcedDischargeEnable = 1 << 10,
     ChargePriorityEnable = 1 << 11,
 }
+
+// Input71Bits {{{
+#[derive(Clone, Debug, Serialize)]
+pub struct Input71Bits {
+    pub auto_test_start: String,
+    pub ub_auto_test_status: String,
+    pub ub_auto_test_step: String,
+}
+impl Input71Bits {
+    fn auto_test_start_string(value: u16) -> String {
+        match value {
+            0 => "Not Started".to_string(),
+            1 => "Started".to_string(),
+            _ => "Unknown".to_string(),
+        }
+    }
+
+    fn auto_test_status_string(value: u16) -> String {
+        match value {
+            0 => "Waiting".to_string(),
+            1 => "Testing".to_string(),
+            2 => "Test Fail".to_string(),
+            3 => "V Test OK".to_string(),
+            4 => "F Test OK".to_string(),
+            5 => "Test Pass".to_string(),
+            _ => "Unknown".to_string(),
+        }
+    }
+
+    fn auto_test_step_string(value: u16) -> String {
+        match value {
+            1 => "V1L Test".to_string(),
+            2 => "V1H Test".to_string(),
+            3 => "F1L Test".to_string(),
+            4 => "F1H Test".to_string(),
+            5 => "V2L Test".to_string(),
+            6 => "V2H Test".to_string(),
+            7 => "F2L Test".to_string(),
+            8 => "F2H Test".to_string(),
+            _ => "Unknown".to_string(),
+        }
+    }
+
+    pub fn new(data: u16) -> Self {
+        Self {
+            auto_test_start: Self::auto_test_start_string((data >> 0) & 0b1111),
+            ub_auto_test_status: Self::auto_test_status_string((data >> 4) & 0b1111),
+            ub_auto_test_step: Self::auto_test_step_string((data >> 8) & 0b1111),
+        }
+    }
+} // }}}
+
+// Input77Bits {{{
+#[derive(Clone, Debug, Serialize)]
+pub struct Input77Bits {
+    pub ac_input_type: String,
+    pub ac_couple_inverter_flow: String,
+    pub ac_couple_enable: String,
+}
+impl Input77Bits {
+    fn ac_input_type_string(value: u16) -> String {
+        match value {
+            0 => "Grid".to_string(),
+            1 => "Generator".to_string(),
+            _ => "Unknown".to_string(),
+        }
+    }
+
+    fn is_bit_set(data: u16, bit: u16) -> String {
+        if (data & bit) == bit {
+            "ON".to_string()
+        } else {
+            "OFF".to_string()
+        }
+    }
+
+    pub fn new(data: u16) -> Self {
+        Self {
+            ac_input_type: Self::ac_input_type_string((data >> 0) & 0b1),
+            ac_couple_inverter_flow: Self::is_bit_set(data, 1 << 1),
+            ac_couple_enable: Self::is_bit_set(data, 1 << 2),
+        }
+    }
+} // }}}
+
+// Input113Bits {{{
+#[derive(Clone, Debug, Serialize)]
+pub struct Input113Bits {
+    pub master_or_slave: String,
+    pub single_or_three_phase: String,
+    pub phases_sequence: String,
+    pub parallel_num: u8,
+}
+impl Input113Bits {
+    fn master_or_slave_string(value: u16) -> String {
+        match value {
+            1 => "Master".to_string(),
+            2 => "Slave".to_string(),
+            _ => "Unknown".to_string(),
+        }
+    }
+
+    fn single_or_three_phase_string(value: u16) -> String {
+        match value {
+            1 => "R".to_string(),
+            2 => "S".to_string(),
+            3 => "T".to_string(),
+            _ => "Unknown".to_string(),
+        }
+    }
+
+    fn phases_sequence_string(value: u16) -> String {
+        match value {
+            0 => "Positive Order".to_string(),
+            1 => "Negative Order".to_string(),
+            _ => "Unknown".to_string(),
+        }
+    }
+
+    pub fn new(data: u16) -> Self {
+        Self {
+            master_or_slave: Self::master_or_slave_string((data >> 0) & 0b11),
+            single_or_three_phase: Self::single_or_three_phase_string((data >> 2) & 0b11),
+            phases_sequence: Self::phases_sequence_string((data >> 4) & 0b11),
+            parallel_num: ((data >> 8) & 0b11111111) as u8,
+        }
+    }
+} // }}}
+
+// Input144Bits {{{
+#[derive(Clone, Debug, Serialize)]
+pub struct Input144Bits {
+    pub afci_flag_arc_alarm_ch1: String,
+    pub afci_flag_arc_alarm_ch2: String,
+    pub afci_flag_arc_alarm_ch3: String,
+    pub afci_flag_arc_alarm_ch4: String,
+    pub afci_flag_self_test_fail_ch1: String,
+    pub afci_flag_self_test_fail_ch2: String,
+    pub afci_flag_self_test_fail_ch3: String,
+    pub afci_flag_self_test_fail_ch4: String,
+}
+impl Input144Bits {
+    fn is_bit_set(data: u16, bit: u16) -> String {
+        if (data & bit) == bit {
+            "ON".to_string()
+        } else {
+            "OFF".to_string()
+        }
+    }
+
+    pub fn new(data: u16) -> Self {
+        Self {
+            afci_flag_arc_alarm_ch1: Self::is_bit_set(data, 1 << 0),
+            afci_flag_arc_alarm_ch2: Self::is_bit_set(data, 1 << 1),
+            afci_flag_arc_alarm_ch3: Self::is_bit_set(data, 1 << 2),
+            afci_flag_arc_alarm_ch4: Self::is_bit_set(data, 1 << 3),
+            afci_flag_self_test_fail_ch1: Self::is_bit_set(data, 1 << 4),
+            afci_flag_self_test_fail_ch2: Self::is_bit_set(data, 1 << 5),
+            afci_flag_self_test_fail_ch3: Self::is_bit_set(data, 1 << 6),
+            afci_flag_self_test_fail_ch4: Self::is_bit_set(data, 1 << 7),
+        }
+    }
+} // }}}
 
 // Register21Bits {{{
 #[derive(Clone, Debug, Serialize)]

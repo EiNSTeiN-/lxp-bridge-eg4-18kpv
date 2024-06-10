@@ -7,18 +7,25 @@ use serde::{Serialize, Serializer};
 #[derive(Clone, Debug, PartialEq)]
 pub enum ValueTemplate {
     None,
-    Default, // "{{ value_json.$key }}"
+    Default, // "{{ value_json }}"
+    FromKey, // "{{ value_json.$key }}"
     String(String),
 }
 impl ValueTemplate {
-    pub fn from_default(key: &str) -> Self {
+    pub fn from_default() -> Self {
         Self::String("{{ value_json }}".to_string())
+    }
+    pub fn from_key(key: &str) -> Self {
+        Self::String(format!("{{ value_json.{} }}", key))
     }
     pub fn is_none(&self) -> bool {
         *self == Self::None
     }
     pub fn is_default(&self) -> bool {
         *self == Self::Default
+    }
+    pub fn is_from_key(&self) -> bool {
+        *self == Self::FromKey
     }
 }
 impl Serialize for ValueTemplate {
@@ -171,7 +178,7 @@ impl Config {
             state_class: None,
             unit_of_measurement: None,
             icon: None,
-            value_template: ValueTemplate::Default, // "{{ value_json.$key }}"
+            value_template: ValueTemplate::Default, // "{{ value_json }}"
             // TODO: might change this to an enum that defaults to InputsAll but can be replaced
             // with a string for a specific topic?
             state_topic: StateTopic::Default,
@@ -256,6 +263,203 @@ impl Config {
                 ..base.clone()
             },
             Entity {
+                key: "ac_input_type",
+                name: "AC Input Type",
+                entity_category: Some("diagnostic"),
+                device_class: Some("enum"),
+                state_topic: StateTopic::from_default(self.mqtt_config.namespace(), self.inverter.datalog(), "register_77"),
+                value_template: ValueTemplate::FromKey,
+                ..base.clone()
+            },
+            Entity {
+                key: "ac_couple_inverter_flow",
+                name: "AC Couple Inverter Flow",
+                state_topic: StateTopic::from_default(self.mqtt_config.namespace(), self.inverter.datalog(), "register_77"),
+                entity_category: Some("diagnostic"),
+                value_template: ValueTemplate::FromKey,
+                ..base.clone()
+            },
+            Entity {
+                key: "ac_couple_enable",
+                name: "AC Couple Enable",
+                entity_category: Some("diagnostic"),
+                state_topic: StateTopic::from_default(self.mqtt_config.namespace(), self.inverter.datalog(), "register_77"),
+                value_template: ValueTemplate::FromKey,
+                ..base.clone()
+            },
+            Entity {
+                key: "master_or_slave",
+                name: "Parallel Inverter Role",
+                entity_category: Some("diagnostic"),
+                state_topic: StateTopic::from_default(self.mqtt_config.namespace(), self.inverter.datalog(), "register_113"),
+                value_template: ValueTemplate::FromKey,
+                ..base.clone()
+            },
+            Entity {
+                key: "single_or_three_phase",
+                name: "Parallel Inverter Phase",
+                entity_category: Some("diagnostic"),
+                state_topic: StateTopic::from_default(self.mqtt_config.namespace(), self.inverter.datalog(), "register_113"),
+                value_template: ValueTemplate::FromKey,
+                ..base.clone()
+            },
+            Entity {
+                key: "phases_sequence",
+                name: "Parallel Inverter Phases Sequence",
+                entity_category: Some("diagnostic"),
+                state_topic: StateTopic::from_default(self.mqtt_config.namespace(), self.inverter.datalog(), "register_113"),
+                value_template: ValueTemplate::FromKey,
+                ..base.clone()
+            },
+            Entity {
+                key: "parallel_num",
+                name: "Parallel Inverter Count",
+                entity_category: Some("diagnostic"),
+                state_topic: StateTopic::from_default(self.mqtt_config.namespace(), self.inverter.datalog(), "register_113"),
+                value_template: ValueTemplate::FromKey,
+                ..base.clone()
+            },
+            Entity {
+                key: "afci_ch1_current",
+                name: "AFCI Channel 1 Current",
+                entity_category: Some("diagnostic"),
+                unit_of_measurement: Some("mA"),
+                ..current.clone()
+            },
+            Entity {
+                key: "afci_ch2_current",
+                name: "AFCI Channel 2 Current",
+                entity_category: Some("diagnostic"),
+                unit_of_measurement: Some("mA"),
+                ..current.clone()
+            },
+            Entity {
+                key: "afci_ch3_current",
+                name: "AFCI Channel 3 Current",
+                entity_category: Some("diagnostic"),
+                unit_of_measurement: Some("mA"),
+                ..current.clone()
+            },
+            Entity {
+                key: "afci_ch4_current",
+                name: "AFCI Channel 4 Current",
+                entity_category: Some("diagnostic"),
+                unit_of_measurement: Some("mA"),
+                ..current.clone()
+            },
+            Entity {
+                key: "afci_flag_arc_alarm_ch1",
+                name: "AFCI ARC Alarm Channel 1",
+                entity_category: Some("diagnostic"),
+                state_topic: StateTopic::from_default(self.mqtt_config.namespace(), self.inverter.datalog(), "register_144"),
+                value_template: ValueTemplate::FromKey,
+                ..base.clone()
+            },
+            Entity {
+                key: "afci_flag_arc_alarm_ch2",
+                name: "AFCI ARC Alarm Channel 2",
+                entity_category: Some("diagnostic"),
+                state_topic: StateTopic::from_default(self.mqtt_config.namespace(), self.inverter.datalog(), "register_144"),
+                value_template: ValueTemplate::FromKey,
+                ..base.clone()
+            },
+            Entity {
+                key: "afci_flag_arc_alarm_ch3",
+                name: "AFCI ARC Alarm Channel 3",
+                entity_category: Some("diagnostic"),
+                state_topic: StateTopic::from_default(self.mqtt_config.namespace(), self.inverter.datalog(), "register_144"),
+                value_template: ValueTemplate::FromKey,
+                ..base.clone()
+            },
+            Entity {
+                key: "afci_flag_arc_alarm_ch4",
+                name: "AFCI ARC Alarm Channel 4",
+                entity_category: Some("diagnostic"),
+                state_topic: StateTopic::from_default(self.mqtt_config.namespace(), self.inverter.datalog(), "register_144"),
+                value_template: ValueTemplate::FromKey,
+                ..base.clone()
+            },
+            Entity {
+                key: "afci_flag_self_test_fail_ch1",
+                name: "AFCI Self Test Fail Channel 1",
+                entity_category: Some("diagnostic"),
+                state_topic: StateTopic::from_default(self.mqtt_config.namespace(), self.inverter.datalog(), "register_144"),
+                value_template: ValueTemplate::FromKey,
+                ..base.clone()
+            },
+            Entity {
+                key: "afci_flag_self_test_fail_ch2",
+                name: "AFCI Self Test Fail Channel 2",
+                entity_category: Some("diagnostic"),
+                state_topic: StateTopic::from_default(self.mqtt_config.namespace(), self.inverter.datalog(), "register_144"),
+                value_template: ValueTemplate::FromKey,
+                ..base.clone()
+            },
+            Entity {
+                key: "afci_flag_self_test_fail_ch3",
+                name: "AFCI Self Test Fail Channel 3",
+                entity_category: Some("diagnostic"),
+                state_topic: StateTopic::from_default(self.mqtt_config.namespace(), self.inverter.datalog(), "register_144"),
+                value_template: ValueTemplate::FromKey,
+                ..base.clone()
+            },
+            Entity {
+                key: "afci_flag_self_test_fail_ch4",
+                name: "AFCI Self Test Fail Channel 4",
+                entity_category: Some("diagnostic"),
+                state_topic: StateTopic::from_default(self.mqtt_config.namespace(), self.inverter.datalog(), "register_144"),
+                value_template: ValueTemplate::FromKey,
+                ..base.clone()
+            },
+            Entity {
+                key: "afci_arc_ch1",
+                name: "Real Time Arc of Channel 1",
+                entity_category: Some("diagnostic"),
+                ..base.clone()
+            },
+            Entity {
+                key: "afci_arc_ch2",
+                name: "Real Time Arc of Channel 2",
+                entity_category: Some("diagnostic"),
+                ..base.clone()
+            },
+            Entity {
+                key: "afci_arc_ch3",
+                name: "Real Time Arc of Channel 3",
+                entity_category: Some("diagnostic"),
+                ..base.clone()
+            },
+            Entity {
+                key: "afci_arc_ch4",
+                name: "Real Time Arc of Channel 4",
+                entity_category: Some("diagnostic"),
+                ..base.clone()
+            },
+            Entity {
+                key: "afci_max_arc_ch1",
+                name: "Max Arc of Channel 1",
+                entity_category: Some("diagnostic"),
+                ..base.clone()
+            },
+            Entity {
+                key: "afci_max_arc_ch2",
+                name: "Max Arc of Channel 2",
+                entity_category: Some("diagnostic"),
+                ..base.clone()
+            },
+            Entity {
+                key: "afci_max_arc_ch3",
+                name: "Max Arc of Channel 3",
+                entity_category: Some("diagnostic"),
+                ..base.clone()
+            },
+            Entity {
+                key: "afci_max_arc_ch4",
+                name: "Max Arc of Channel 4",
+                entity_category: Some("diagnostic"),
+                ..base.clone()
+            },
+            Entity {
                 key: "v_bat",
                 name: "Battery Voltage",
                 ..voltage.clone()
@@ -293,6 +497,11 @@ impl Config {
             Entity {
                 key: "v_bus_2",
                 name: "Bus 2 Voltage",
+                ..voltage.clone()
+            },
+            Entity {
+                key: "v_half_bus",
+                name: "Half Bus Voltage",
                 ..voltage.clone()
             },
             Entity {
@@ -542,6 +751,14 @@ impl Config {
                 ..energy.clone()
             },
             Entity {
+                key: "eps_overload_ctrl_time",
+                name: "EPS Overload Connect Time",
+                entity_category: Some("diagnostic"),
+                device_class: Some("duration"),
+                unit_of_measurement: Some("s"),
+                ..base.clone()
+            },
+            Entity {
                 key: "t_inner",
                 name: "Inverter Temperature",
                 ..temperature.clone()
@@ -661,6 +878,179 @@ impl Config {
                 ..energy.clone()
             },
             Entity {
+                key: "p_on_grid_load",
+                name: "On-grid Load Power",
+                ..power.clone()
+            },
+            Entity {
+                key: "p_ac_couple",
+                name: "AC Coupled Inverter Power",
+                ..power.clone()
+            },
+            Entity {
+                key: "p_load",
+                name: "Load Power",
+                ..power.clone()
+            },
+            Entity {
+                key: "e_load_day",
+                name: "Load Energy (Today)",
+                ..energy.clone()
+            },
+            Entity {
+                key: "e_load_all",
+                name: "Load Energy (All Time)",
+                ..energy.clone()
+            },
+
+            Entity {
+                key: "p_inv_s",
+                name: "On-grid Inverter Power of Three-Phase: S-phase",
+                ..power.clone()
+            },
+            Entity {
+                key: "p_inv_t",
+                name: "On-grid Inverter Power of Three-Phase: T-phase",
+                ..power.clone()
+            },
+            Entity {
+                key: "p_rec_s",
+                name: "Charging Rectification Power of Three-Phase: S-phase",
+                ..power.clone()
+            },
+            Entity {
+                key: "p_rec_t",
+                name: "Charging Rectification Power of Three-Phase: T-phase",
+                ..power.clone()
+            },
+            Entity {
+                key: "p_to_grid_s",
+                name: "Grid Export Power of Three-Phase: S-phase",
+                ..power.clone()
+            },
+            Entity {
+                key: "p_to_grid_t",
+                name: "Grid Export Power of Three-Phase: T-phase",
+                ..power.clone()
+            },
+            Entity {
+                key: "p_to_user_s",
+                name: "Grid Import Power of Three-Phase: S-phase",
+                ..power.clone()
+            },
+            Entity {
+                key: "p_to_user_t",
+                name: "Grid Import Power of Three-Phase: T-phase",
+                ..power.clone()
+            },
+            Entity {
+                key: "p_gen_s",
+                name: "Generator Power of Three-Phase: S-phase",
+                ..power.clone()
+            },
+            Entity {
+                key: "p_gen_t",
+                name: "Generator Power of Three-Phase: T-phase",
+                ..power.clone()
+            },
+            Entity {
+                key: "inv_rms_curr_s",
+                name: "Effective value of Three-Phase Inverter Current: S-phase",
+                ..current.clone()
+            },
+            Entity {
+                key: "inv_rms_curr_t",
+                name: "Effective value of Three-Phase Inverter Current: T-phase",
+                ..current.clone()
+            },
+            Entity {
+                key: "v_grid_l1",
+                name: "Grid Voltage L1",
+                ..voltage.clone()
+            },
+            Entity {
+                key: "v_grid_l2",
+                name: "Grid Voltage L2",
+                ..voltage.clone()
+            },
+            Entity {
+                key: "v_gen_l1",
+                name: "Generator Voltage L1",
+                ..voltage.clone()
+            },
+            Entity {
+                key: "v_gen_l2",
+                name: "Generator Voltage L2",
+                ..voltage.clone()
+            },
+            Entity {
+                key: "p_inv_l1",
+                name: "Inverting Power L1",
+                ..power.clone()
+            },
+            Entity {
+                key: "p_inv_l2",
+                name: "Inverting Power L2",
+                ..power.clone()
+            },
+            Entity {
+                key: "p_rec_l1",
+                name: "Rectifying Power L1",
+                ..power.clone()
+            },
+            Entity {
+                key: "p_rec_l2",
+                name: "Rectifying Power L2",
+                ..power.clone()
+            },
+            Entity {
+                key: "p_to_grid_l1",
+                name: "Grid Export Power L1",
+                ..power.clone()
+            },
+            Entity {
+                key: "p_to_grid_l2",
+                name: "Grid Export Power L2",
+                ..power.clone()
+            },
+            Entity {
+                key: "p_to_user_l1",
+                name: "Grid Import Power L1",
+                ..power.clone()
+            },
+            Entity {
+                key: "p_to_user_l2",
+                name: "Grid Import Power L2",
+                ..power.clone()
+            },
+            Entity {
+                key: "auto_test_start",
+                name: "Auto Test Started",
+                entity_category: Some("diagnostic"),
+                device_class: Some("enum"),
+                state_topic: StateTopic::from_default(self.mqtt_config.namespace(), self.inverter.datalog(), "register_71"),
+                value_template: ValueTemplate::FromKey,
+                ..base.clone()
+            },
+            Entity {
+                key: "ub_auto_test_status",
+                name: "Auto Test Status",
+                entity_category: Some("diagnostic"),
+                device_class: Some("enum"),
+                state_topic: StateTopic::from_default(self.mqtt_config.namespace(), self.inverter.datalog(), "register_71"),
+                value_template: ValueTemplate::FromKey,
+                ..base.clone()
+            },
+            Entity {
+                key: "ub_auto_test_step",
+                name: "Auto Test Step",
+                entity_category: Some("diagnostic"),
+                device_class: Some("enum"),
+                state_topic: StateTopic::from_default(self.mqtt_config.namespace(), self.inverter.datalog(), "register_71"),
+                value_template: ValueTemplate::FromKey,
+                ..base.clone()
+            },
+            Entity {
                 key: "runtime",
                 name: "Total Runtime",
                 entity_category: Some("diagnostic"),
@@ -679,7 +1069,10 @@ impl Config {
                     ..sensor
                 };
                 if sensor.value_template.is_default() {
-                    sensor.value_template = ValueTemplate::from_default(sensor.key);
+                    sensor.value_template = ValueTemplate::from_default();
+                }
+                if sensor.value_template.is_from_key() {
+                    sensor.value_template = ValueTemplate::from_key(sensor.key);
                 }
                 if sensor.state_topic.is_default() {
                     sensor.state_topic = StateTopic::from_default(

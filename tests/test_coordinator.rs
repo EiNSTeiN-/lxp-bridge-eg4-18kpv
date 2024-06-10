@@ -97,6 +97,30 @@ async fn handles_read_input_all() {
         assert_eq!(
             to_mqtt.recv().await?,
             mqtt::ChannelData::Message(mqtt::Message {
+                topic: format!("{}/input/register_71/parsed", inverter.datalog()),
+                retain: false,
+                payload: "{\"auto_test_start\":\"Started\",\"ub_auto_test_status\":\"Waiting\",\"ub_auto_test_step\":\"V1L Test\"}".to_owned(),
+            })
+        );
+        assert_eq!(
+            to_mqtt.recv().await?,
+            mqtt::ChannelData::Message(mqtt::Message {
+                topic: format!("{}/input/register_77/parsed", inverter.datalog()),
+                retain: false,
+                payload: "{\"ac_input_type\":\"Generator\",\"ac_couple_inverter_flow\":\"OFF\",\"ac_couple_enable\":\"OFF\"}".to_owned(),
+            })
+        );
+        assert_eq!(
+            to_mqtt.recv().await?,
+            mqtt::ChannelData::Message(mqtt::Message {
+                topic: format!("{}/input/register_113/parsed", inverter.datalog()),
+                retain: false,
+                payload: "{\"master_or_slave\":\"Master\",\"single_or_three_phase\":\"Unknown\",\"phases_sequence\":\"Positive Order\",\"parallel_num\":1}".to_owned(),
+            })
+        );
+        assert_eq!(
+            to_mqtt.recv().await?,
+            mqtt::ChannelData::Message(mqtt::Message {
                 topic: format!("{}/input/warning_code/parsed", inverter.datalog()),
                 retain: false,
                 payload: "\"W000: Battery communication failure\"".to_owned(),
@@ -113,7 +137,7 @@ async fn handles_read_input_all() {
         assert_eq!(
             to_mqtt.recv().await?,
             mqtt::ChannelData::Message(mqtt::Message {
-                topic: format!("{}/input/ac_input_type/parsed", inverter.datalog()),
+                topic: format!("{}/input/bat_capacity/parsed", inverter.datalog()),
                 retain: false,
                 payload: "257".to_owned(),
             })

@@ -95,6 +95,42 @@ impl Message {
                 });
             }
 
+            if register == 71 {
+                let bits = lxp::packet::Input71Bits::new(value);
+                r.push(mqtt::Message {
+                    topic: format!("{}/input/register_71/parsed", td.datalog),
+                    retain: false,
+                    payload: serde_json::to_string(&bits)?,
+                });
+            }
+
+            if register == 77 {
+                let bits = lxp::packet::Input77Bits::new(value);
+                r.push(mqtt::Message {
+                    topic: format!("{}/input/register_77/parsed", td.datalog),
+                    retain: false,
+                    payload: serde_json::to_string(&bits)?,
+                });
+            }
+
+            if register == 113 {
+                let bits = lxp::packet::Input113Bits::new(value);
+                r.push(mqtt::Message {
+                    topic: format!("{}/input/register_113/parsed", td.datalog),
+                    retain: false,
+                    payload: serde_json::to_string(&bits)?,
+                });
+            }
+
+            if register == 144 {
+                let bits = lxp::packet::Input144Bits::new(value);
+                r.push(mqtt::Message {
+                    topic: format!("{}/input/register_144/parsed", td.datalog),
+                    retain: false,
+                    payload: serde_json::to_string(&bits)?,
+                });
+            }
+
             if register == 60 {
                 fault_code |= value as u32;
                 fault_code_registers_seen = true;
@@ -135,7 +171,8 @@ impl Message {
                 // if publish_individual {
                     let mut data = serde_json::to_value(&r_all).unwrap();
                     for (key, value) in data.as_object_mut().unwrap() {
-                        if key != "status" && key != "fault_code" && key != "warning_code" {
+                        if key != "status" && key != "fault_code" && key != "warning_code"
+                        && key != "register_71" && key != "register_77" && key != "register_113" {
                             r.push(mqtt::Message {
                                 topic: format!("{}/input/{}/parsed", td.datalog, key),
                                 retain: false,
@@ -154,11 +191,13 @@ impl Message {
                 // if publish_individual {
                     let mut data = serde_json::to_value(&r_all).unwrap();
                     for (key, value) in data.as_object_mut().unwrap() {
-                        r.push(mqtt::Message {
-                            topic: format!("{}/input/{}/parsed", td.datalog, key),
-                            retain: false,
-                            payload: value.to_string(),
-                        });
+                        if key != "register_144" {
+                            r.push(mqtt::Message {
+                                topic: format!("{}/input/{}/parsed", td.datalog, key),
+                                retain: false,
+                                payload: value.to_string(),
+                            });
+                        }
                     }
                 // }
                 // r.push(mqtt::Message {

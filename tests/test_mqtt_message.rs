@@ -204,11 +204,18 @@ async fn for_input() {
 
     assert_eq!(
         mqtt::Message::for_input(packet, false).unwrap(),
-        vec![mqtt::Message {
-            topic: "2222222222/inputs/3".to_owned(),
-            retain: false,
-            payload: r#"{"max_chg_curr":6553.5,"max_dischg_curr":6553.5,"charge_volt_ref":6553.5,"dischg_cut_volt":6553.5,"bat_status_0":65535,"bat_status_1":65535,"bat_status_2":65535,"bat_status_3":65535,"bat_status_4":65535,"bat_status_5":65535,"bat_status_6":65535,"bat_status_7":65535,"bat_status_8":65535,"bat_status_9":65535,"bat_status_inv":65535,"bat_count":65535,"bat_capacity":65535,"bat_current":655.35,"bms_event_1":65535,"bms_event_2":65535,"max_cell_voltage":65.535,"min_cell_voltage":65.535,"max_cell_temp":6553.5,"min_cell_temp":6553.5,"bms_fw_update_state":65535,"cycle_count":65535,"vbat_inv":6553.5,"t1_temp":6553.5,"time":1646370367,"datalog":"2222222222"}"#.to_owned()
-        },]
+        vec![
+            mqtt::Message {
+                topic: "2222222222/input/register_113/parsed".to_owned(),
+                retain: false,
+                payload: "{\"master_or_slave\":\"Unknown\",\"single_or_three_phase\":\"T\",\"phases_sequence\":\"Unknown\",\"parallel_num\":255}".to_owned()
+            },
+            mqtt::Message {
+                topic: "2222222222/inputs/3".to_owned(),
+                retain: false,
+                payload: r#"{"max_chg_curr":6553.5,"max_dischg_curr":6553.5,"charge_volt_ref":6553.5,"dischg_cut_volt":6553.5,"bat_status_0":65535,"bat_status_1":65535,"bat_status_2":65535,"bat_status_3":65535,"bat_status_4":65535,"bat_status_5":65535,"bat_status_6":65535,"bat_status_7":65535,"bat_status_8":65535,"bat_status_9":65535,"bat_status_inv":65535,"bat_count":65535,"bat_capacity":65535,"bat_current":655.35,"bms_event_1":65535,"bms_event_2":65535,"max_cell_voltage":65.535,"min_cell_voltage":65.535,"max_cell_temp":6553.5,"min_cell_temp":6553.5,"bms_fw_update_state":65535,"cycle_count":65535,"vbat_inv":6553.5,"t1_temp":6553.5,"register_113":65535,"p_on_grid_load":65535,"time":1646370367,"datalog":"2222222222"}"#.to_owned()
+            },
+        ]
     );
 }
 
@@ -320,6 +327,19 @@ async fn for_input_ignore_127_254() {
     };
 
     assert_eq!(mqtt::Message::for_input(packet, false).unwrap(), vec![
+        mqtt::Message { topic: "2222222222/input/register_144/parsed".to_owned(), retain: false, payload: "{\"afci_flag_arc_alarm_ch1\":\"OFF\",\"afci_flag_arc_alarm_ch2\":\"OFF\",\"afci_flag_arc_alarm_ch3\":\"OFF\",\"afci_flag_arc_alarm_ch4\":\"OFF\",\"afci_flag_self_test_fail_ch1\":\"OFF\",\"afci_flag_self_test_fail_ch2\":\"OFF\",\"afci_flag_self_test_fail_ch3\":\"OFF\",\"afci_flag_self_test_fail_ch4\":\"OFF\"}".to_owned() },
+        mqtt::Message { topic: "2222222222/input/afci_arc_ch1/parsed".to_owned(), retain: false, payload: "0".to_owned() },
+        mqtt::Message { topic: "2222222222/input/afci_arc_ch2/parsed".to_owned(), retain: false, payload: "0".to_owned() },
+        mqtt::Message { topic: "2222222222/input/afci_arc_ch3/parsed".to_owned(), retain: false, payload: "0".to_owned() },
+        mqtt::Message { topic: "2222222222/input/afci_arc_ch4/parsed".to_owned(), retain: false, payload: "0".to_owned() },
+        mqtt::Message { topic: "2222222222/input/afci_ch1_current/parsed".to_owned(), retain: false, payload: "0".to_owned() },
+        mqtt::Message { topic: "2222222222/input/afci_ch2_current/parsed".to_owned(), retain: false, payload: "0".to_owned() },
+        mqtt::Message { topic: "2222222222/input/afci_ch3_current/parsed".to_owned(), retain: false, payload: "0".to_owned() },
+        mqtt::Message { topic: "2222222222/input/afci_ch4_current/parsed".to_owned(), retain: false, payload: "0".to_owned() },
+        mqtt::Message { topic: "2222222222/input/afci_max_arc_ch1/parsed".to_owned(), retain: false, payload: "0".to_owned() },
+        mqtt::Message { topic: "2222222222/input/afci_max_arc_ch2/parsed".to_owned(), retain: false, payload: "0".to_owned() },
+        mqtt::Message { topic: "2222222222/input/afci_max_arc_ch3/parsed".to_owned(), retain: false, payload: "0".to_owned() },
+        mqtt::Message { topic: "2222222222/input/afci_max_arc_ch4/parsed".to_owned(), retain: false, payload: "0".to_owned() },
         mqtt::Message { topic: "2222222222/input/datalog/parsed".to_owned(), retain: false, payload: "\"2222222222\"".to_owned() },
         mqtt::Message { topic: "2222222222/input/e_eps_l1_all/parsed".to_owned(), retain: false, payload: "0.0".to_owned() },
         mqtt::Message { topic: "2222222222/input/e_eps_l1_day/parsed".to_owned(), retain: false, payload: "0.0".to_owned() },
@@ -327,13 +347,41 @@ async fn for_input_ignore_127_254() {
         mqtt::Message { topic: "2222222222/input/e_eps_l2_day/parsed".to_owned(), retain: false, payload: "0.0".to_owned() },
         mqtt::Message { topic: "2222222222/input/e_load_all/parsed".to_owned(), retain: false, payload: "0.0".to_owned() },
         mqtt::Message { topic: "2222222222/input/e_load_day/parsed".to_owned(), retain: false, payload: "0.0".to_owned() },
+        mqtt::Message { topic: "2222222222/input/eps_overload_ctrl_time/parsed".to_owned(), retain: false, payload: "0".to_owned() },
+        mqtt::Message { topic: "2222222222/input/inv_rms_curr_s/parsed".to_owned(), retain: false, payload: "0.0".to_owned() },
+        mqtt::Message { topic: "2222222222/input/inv_rms_curr_t/parsed".to_owned(), retain: false, payload: "0.0".to_owned() },
+        mqtt::Message { topic: "2222222222/input/p_ac_couple/parsed".to_owned(), retain: false, payload: "0".to_owned() },
         mqtt::Message { topic: "2222222222/input/p_eps_l1/parsed".to_owned(), retain: false, payload: "0".to_owned() },
         mqtt::Message { topic: "2222222222/input/p_eps_l2/parsed".to_owned(), retain: false, payload: "0".to_owned() },
+        mqtt::Message { topic: "2222222222/input/p_gen_s/parsed".to_owned(), retain: false, payload: "0".to_owned() },
+        mqtt::Message { topic: "2222222222/input/p_gen_t/parsed".to_owned(), retain: false, payload: "0".to_owned() },
+        mqtt::Message { topic: "2222222222/input/p_inv_l1/parsed".to_owned(), retain: false, payload: "0".to_owned() },
+        mqtt::Message { topic: "2222222222/input/p_inv_l2/parsed".to_owned(), retain: false, payload: "0".to_owned() },
+        mqtt::Message { topic: "2222222222/input/p_inv_s/parsed".to_owned(), retain: false, payload: "0".to_owned() },
+        mqtt::Message { topic: "2222222222/input/p_inv_t/parsed".to_owned(), retain: false, payload: "0".to_owned() },
         mqtt::Message { topic: "2222222222/input/p_load/parsed".to_owned(), retain: false, payload: "0".to_owned() },
+        mqtt::Message { topic: "2222222222/input/p_rec_l1/parsed".to_owned(), retain: false, payload: "0".to_owned() },
+        mqtt::Message { topic: "2222222222/input/p_rec_l2/parsed".to_owned(), retain: false, payload: "0".to_owned() },
+        mqtt::Message { topic: "2222222222/input/p_rec_s/parsed".to_owned(), retain: false, payload: "0".to_owned() },
+        mqtt::Message { topic: "2222222222/input/p_rec_t/parsed".to_owned(), retain: false, payload: "0".to_owned() },
+        mqtt::Message { topic: "2222222222/input/p_to_grid_l1/parsed".to_owned(), retain: false, payload: "0".to_owned() },
+        mqtt::Message { topic: "2222222222/input/p_to_grid_l2/parsed".to_owned(), retain: false, payload: "0".to_owned() },
+        mqtt::Message { topic: "2222222222/input/p_to_grid_s/parsed".to_owned(), retain: false, payload: "0".to_owned() },
+        mqtt::Message { topic: "2222222222/input/p_to_grid_t/parsed".to_owned(), retain: false, payload: "0".to_owned() },
+        mqtt::Message { topic: "2222222222/input/p_to_user_l1/parsed".to_owned(), retain: false, payload: "0".to_owned() },
+        mqtt::Message { topic: "2222222222/input/p_to_user_l2/parsed".to_owned(), retain: false, payload: "0".to_owned() },
+        mqtt::Message { topic: "2222222222/input/p_to_user_s/parsed".to_owned(), retain: false, payload: "0".to_owned() },
+        mqtt::Message { topic: "2222222222/input/p_to_user_t/parsed".to_owned(), retain: false, payload: "0".to_owned() },
+        mqtt::Message { topic: "2222222222/input/pf_s/parsed".to_owned(), retain: false, payload: "0.0".to_owned() },
+        mqtt::Message { topic: "2222222222/input/pf_t/parsed".to_owned(), retain: false, payload: "0.0".to_owned() },
         mqtt::Message { topic: "2222222222/input/s_eps_l1/parsed".to_owned(), retain: false, payload: "0".to_owned() },
         mqtt::Message { topic: "2222222222/input/s_eps_l2/parsed".to_owned(), retain: false, payload: "0".to_owned() },
         mqtt::Message { topic: "2222222222/input/time/parsed".to_owned(), retain: false, payload: "1646370367".to_owned() },
         mqtt::Message { topic: "2222222222/input/v_eps_l1/parsed".to_owned(), retain: false, payload: "0.0".to_owned() },
-        mqtt::Message { topic: "2222222222/input/v_eps_l2/parsed".to_owned(), retain: false, payload: "0.0".to_owned() }
+        mqtt::Message { topic: "2222222222/input/v_eps_l2/parsed".to_owned(), retain: false, payload: "0.0".to_owned() },
+        mqtt::Message { topic: "2222222222/input/v_gen_l1/parsed".to_owned(), retain: false, payload: "0.0".to_owned() },
+        mqtt::Message { topic: "2222222222/input/v_gen_l2/parsed".to_owned(), retain: false, payload: "0.0".to_owned() },
+        mqtt::Message { topic: "2222222222/input/v_grid_l1/parsed".to_owned(), retain: false, payload: "0.0".to_owned() },
+        mqtt::Message { topic: "2222222222/input/v_grid_l2/parsed".to_owned(), retain: false, payload: "0.0".to_owned() }
     ]);
 }
