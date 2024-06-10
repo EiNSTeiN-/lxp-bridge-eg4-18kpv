@@ -91,6 +91,8 @@ pub struct Entity<'a> {
     // work out what unique_id and topic should be
     #[serde(skip)]
     key: &'a str, // for example, soc
+    #[serde(skip)]
+    is_binary_sensor: bool, // for example, soc
 
     unique_id: &'a str, // lxp_XXXX_soc
     name: &'a str,      // really more of a label? for example, "State of Charge"
@@ -171,6 +173,7 @@ impl Config {
     pub fn sensors(&self) -> Vec<mqtt::Message> {
         let base = Entity {
             key: &String::default(),
+            is_binary_sensor: false,
             unique_id: &String::default(),
             name: &String::default(),
             entity_category: None,
@@ -281,6 +284,7 @@ impl Config {
             },
             Entity {
                 key: "ac_couple_enable",
+                is_binary_sensor: true,
                 name: "AC Couple Enable",
                 entity_category: Some("diagnostic"),
                 state_topic: StateTopic::from_default(self.mqtt_config.namespace(), self.inverter.datalog(), "register_77"),
@@ -349,6 +353,7 @@ impl Config {
             },
             Entity {
                 key: "afci_flag_arc_alarm_ch1",
+                is_binary_sensor: true,
                 name: "AFCI ARC Alarm Channel 1",
                 entity_category: Some("diagnostic"),
                 state_topic: StateTopic::from_default(self.mqtt_config.namespace(), self.inverter.datalog(), "register_144"),
@@ -357,6 +362,7 @@ impl Config {
             },
             Entity {
                 key: "afci_flag_arc_alarm_ch2",
+                is_binary_sensor: true,
                 name: "AFCI ARC Alarm Channel 2",
                 entity_category: Some("diagnostic"),
                 state_topic: StateTopic::from_default(self.mqtt_config.namespace(), self.inverter.datalog(), "register_144"),
@@ -365,6 +371,7 @@ impl Config {
             },
             Entity {
                 key: "afci_flag_arc_alarm_ch3",
+                is_binary_sensor: true,
                 name: "AFCI ARC Alarm Channel 3",
                 entity_category: Some("diagnostic"),
                 state_topic: StateTopic::from_default(self.mqtt_config.namespace(), self.inverter.datalog(), "register_144"),
@@ -373,6 +380,7 @@ impl Config {
             },
             Entity {
                 key: "afci_flag_arc_alarm_ch4",
+                is_binary_sensor: true,
                 name: "AFCI ARC Alarm Channel 4",
                 entity_category: Some("diagnostic"),
                 state_topic: StateTopic::from_default(self.mqtt_config.namespace(), self.inverter.datalog(), "register_144"),
@@ -389,6 +397,7 @@ impl Config {
             },
             Entity {
                 key: "afci_flag_self_test_fail_ch2",
+                is_binary_sensor: true,
                 name: "AFCI Self Test Fail Channel 2",
                 entity_category: Some("diagnostic"),
                 state_topic: StateTopic::from_default(self.mqtt_config.namespace(), self.inverter.datalog(), "register_144"),
@@ -397,6 +406,7 @@ impl Config {
             },
             Entity {
                 key: "afci_flag_self_test_fail_ch3",
+                is_binary_sensor: true,
                 name: "AFCI Self Test Fail Channel 3",
                 entity_category: Some("diagnostic"),
                 state_topic: StateTopic::from_default(self.mqtt_config.namespace(), self.inverter.datalog(), "register_144"),
@@ -405,6 +415,7 @@ impl Config {
             },
             Entity {
                 key: "afci_flag_self_test_fail_ch4",
+                is_binary_sensor: true,
                 name: "AFCI Self Test Fail Channel 4",
                 entity_category: Some("diagnostic"),
                 state_topic: StateTopic::from_default(self.mqtt_config.namespace(), self.inverter.datalog(), "register_144"),
@@ -642,7 +653,7 @@ impl Config {
             },
             Entity {
                 key: "e_pv_day",
-                name: "PV Generation (Today))",
+                name: "PV Generation (Today)",
                 ..energy.clone()
             },
             Entity {
@@ -1082,7 +1093,10 @@ impl Config {
                     );
                 }
 
-                let topic = self.ha_discovery_topic("sensor", sensor.key);
+                let topic = self.ha_discovery_topic(
+                    if sensor.is_binary_sensor { "binary_sensor" } else { "sensor" }, 
+                    sensor.key
+                );
                 let payload = serde_json::to_string(&sensor).unwrap();
 
                 debug!("mqtt message payload for home assistant: {} = {}", topic, payload);
