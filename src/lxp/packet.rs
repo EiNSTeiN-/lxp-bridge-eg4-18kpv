@@ -129,10 +129,10 @@ pub struct ReadInputAll {
     pub fault_code: u32,
     pub warning_code: u32,
 
-    pub t_inner: u16, // Internal ring temperature
-    pub t_rad_1: u16, // Radiator 1 temperature
-    pub t_rad_2: u16, // Radiator 2 temperature
-    pub t_bat: u16, // Battery temperature
+    pub t_inner: i16, // Internal ring temperature
+    pub t_rad_1: i16, // Radiator 1 temperature
+    pub t_rad_2: i16, // Radiator 2 temperature
+    pub t_bat: i16, // Battery temperature
     #[nom(SkipBefore(2))] // reserved - radiator 3?
     pub runtime: u32,
     // 18 bytes of auto_test stuff here I'm not doing yet
@@ -376,10 +376,10 @@ pub struct ReadInput2 {
     pub fault_code: u32,
     pub warning_code: u32,
 
-    pub t_inner: u16,
-    pub t_rad_1: u16,
-    pub t_rad_2: u16,
-    pub t_bat: u16,
+    pub t_inner: i16,
+    pub t_rad_1: i16,
+    pub t_rad_2: i16,
+    pub t_bat: i16,
 
     #[nom(SkipBefore(2))] // reserved
     pub runtime: u32,

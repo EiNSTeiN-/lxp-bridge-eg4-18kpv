@@ -61,7 +61,7 @@ async fn sqlite_insertion() {
                 assert_u16_eq(row.get("p_discharge"), ria.p_discharge);
                 assert_f64_eq(row.get("e_to_user_day"), ria.e_to_user_day);
                 assert_f64_eq(row.get("e_pv_all"), ria.e_pv_all);
-                assert_u16_eq(row.get("t_rad_2"), ria.t_rad_2);
+                assert_i16_eq(row.get("t_rad_2"), ria.t_rad_2);
                 assert_u16_eq(row.get("bms_event_1"), ria.bms_event_1);
                 assert_u16_eq(row.get("bms_event_2"), ria.bms_event_2);
                 assert_u16_eq(row.get("bms_fw_update_state"), ria.bms_fw_update_state);
