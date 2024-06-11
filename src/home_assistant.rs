@@ -276,6 +276,7 @@ impl Config {
             },
             Entity {
                 key: "ac_couple_inverter_flow",
+                is_binary_sensor: true,
                 name: "AC Couple Inverter Flow",
                 state_topic: StateTopic::from_default(self.mqtt_config.namespace(), self.inverter.datalog(), "register_77"),
                 entity_category: Some("diagnostic"),
