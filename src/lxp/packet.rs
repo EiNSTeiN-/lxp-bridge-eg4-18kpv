@@ -839,12 +839,12 @@ pub enum Register {
     VoltWattP2 = 184,               // (%)
     VrefQV = 185,                   // (0.1V)
     VrefFilterTime = 186,           // (s)
-    Q3_QV = 187,                    // (%)
-    Q4_QV = 188,                    // (%)
-    P1_QP = 189,                    // (%)
-    P2_QP = 190,                    // (%)
-    P3_QP = 191,                    // (%)
-    P4_QP = 192,                    // (%)
+    Q3Qv = 187,                     // (%)
+    Q4Qv = 188,                     // (%)
+    P1Qp = 189,                     // (%)
+    P2Qp = 190,                     // (%)
+    P3Qp = 191,                     // (%)
+    P4Qp = 192,                     // (%)
     UVFIncreaseRatio = 193,         // Underfrequency load ramp rate (%Pm/Hz)
     GenChargeStartVolt = 194,       // Intitial voltage for generator charging the battery, which will be valid after selecting GenChg according to voltage. (0.1V)
     GenChargeEndVolt = 195,         // Battery voltage at the end of generator charging, which will be valid after selecting GenChg according to voltage. (0.1V)
@@ -1119,6 +1119,16 @@ pub struct Register110Bits {
     pub ub_pv_grid_off_en: String,
     pub ub_run_without_grid: String,
     pub ub_micro_grid_en: String,
+    pub ub_bat_shared_en: String,
+    pub ub_charge_last_en: String,
+    pub ct_sample_ratio: String,
+    pub buzzer_en: String,
+    pub pv_ct_sample_type: String,
+    pub take_load_together: String,
+    pub on_grid_working_mode: String,
+    pub pv_ct_sample_ratio: String,
+    pub green_mode_en: String,
+    pub eco_mode_en: String,
 }
 impl Register110Bits {
     fn is_bit_set(data: u16, bit: u16) -> String {
@@ -1134,10 +1144,300 @@ impl Register110Bits {
             ub_pv_grid_off_en: Self::is_bit_set(data, 1 << 0),
             ub_run_without_grid: Self::is_bit_set(data, 1 << 1),
             ub_micro_grid_en: Self::is_bit_set(data, 1 << 2),
+            ub_bat_shared_en: Self::is_bit_set(data, 1 << 3),
+            ub_charge_last_en: Self::is_bit_set(data, 1 << 4),
+            ct_sample_ratio: "Unknown".to_string(), // todo
+            buzzer_en: Self::is_bit_set(data, 1 << 7),
+            pv_ct_sample_type: "Unknown".to_string(), // todo
+            take_load_together: Self::is_bit_set(data, 1 << 10),
+            on_grid_working_mode: "Unknown".to_string(), // todo
+            pv_ct_sample_ratio: "Unknown".to_string(), // todo
+            green_mode_en: Self::is_bit_set(data, 1 << 14),
+            eco_mode_en: Self::is_bit_set(data, 1 << 15),
         }
     }
 } // }}}
 
+// Register120Bits {{{
+#[derive(Clone, Debug, Serialize)]
+pub struct Register120Bits {
+    pub half_hour_ac_charge_start_en: String,
+    pub ac_charge_type: String,
+    pub discharge_ctrl_type: String,
+    pub on_grid_eod_type: String,
+    pub gen_charge_type: String,
+}
+impl Register120Bits {
+    fn is_bit_set(data: u16, bit: u16) -> String {
+        if (data & bit) == bit {
+            "ON".to_string()
+        } else {
+            "OFF".to_string()
+        }
+    }
+
+    fn ac_charge_type_string(status: u16) -> &'static str {
+        match status {
+            0 => "Disable",
+            1 => "According to time",
+            2 => "According to voltage",
+            3 => "According to state of charge",
+            4 => "According to voltage and time",
+            5 => "According to state of charge and time",
+            _ => "Unknown",
+        }
+    }
+    
+    fn ac_charge_type_12k_hybrid_string(status: u16) -> String {
+        match status {
+            0 => "According to time".to_string(),
+            1 => "According to state of charge and voltage".to_string(),
+            _ => "Unknown".to_string(),
+        }
+    }
+
+    fn discharge_ctrl_type_string(status: u16) -> String {
+        match status {
+            0 => "According to voltage".to_string(),
+            1 => "According to state of charge".to_string(),
+            2 => "According to state of charge and voltage".to_string(),
+            _ => "Unknown".to_string(),
+        }
+    }
+
+    fn on_grid_eod_type_string(status: u16) -> String {
+        match status {
+            0 => "According to voltage".to_string(),
+            1 => "According to state of charge".to_string(),
+            _ => "Unknown".to_string(),
+        }
+    }
+
+    fn gen_charge_type_string(status: u16) -> String {
+        match status {
+            0 => "According to voltage".to_string(),
+            1 => "According to state of charge".to_string(),
+            _ => "Unknown".to_string(),
+        }
+    }
+
+    pub fn new(data: u16) -> Self {
+        Self {
+            half_hour_ac_charge_start_en: Self::is_bit_set(data, 1 << 0),
+            ac_charge_type: Self::ac_charge_type_12k_hybrid_string((data >> 1) & 0b111),
+            discharge_ctrl_type: Self::discharge_ctrl_type_string((data >> 4) & 0b11),
+            on_grid_eod_type: Self::on_grid_eod_type_string((data >> 6) & 0b1),
+            gen_charge_type: Self::gen_charge_type_string((data >> 7) & 0b1),
+        }
+    }
+} // }}}
+
+// Register179Bits {{{
+#[derive(Clone, Debug, Serialize)]
+pub struct Register179Bits {
+    pub ac_ct_direction: String,
+    pub pv_ct_direction: String,
+    pub afci_alarm_clear: String,
+    pub pv_sell_first: String,
+    pub volt_watt_en: String,
+    pub triptime_unit: String,
+    pub act_power_cmd_en: String,
+    pub ub_grid_peak_shaving: String,
+    pub ub_gen_peak_shaving: String,
+    pub ub_bat_charge_control: String,
+    pub ub_bat_dischg_control: String,
+    pub ub_ac_coupling: String,
+    pub ub_pv_arc_en: String,
+    pub ub_smart_load_en: String,
+    pub ub_rsd_disable: String,
+    pub on_grid_always_on: String,
+}
+impl Register179Bits {
+    fn is_bit_set(data: u16, bit: u16) -> String {
+        if (data & bit) == bit {
+            "ON".to_string()
+        } else {
+            "OFF".to_string()
+        }
+    }
+    fn is_bit_set_reversed(data: u16, bit: u16) -> String {
+        if (data & bit) == bit {
+            "OFF".to_string()
+        } else {
+            "ON".to_string()
+        }
+    }
+
+    fn direction_bit(data: u16, bit: u16) -> String {
+        if (data & bit) == bit {
+            "Reversed".to_string()
+        } else {
+            "Normal".to_string()
+        }
+    }
+
+    fn control_bit(data: u16, bit: u16) -> String {
+        if (data & bit) == bit {
+            "Volt".to_string()
+        } else {
+            "State of Charge".to_string()
+        }
+    }
+
+    fn smart_load_bit(data: u16, bit: u16) -> String {
+        if (data & bit) == bit {
+            "Smart Load".to_string()
+        } else {
+            "Generator".to_string()
+        }
+    }
+
+    pub fn new(data: u16) -> Self {
+        Self {
+            ac_ct_direction: Self::direction_bit(data, 1 << 0),
+            pv_ct_direction: Self::direction_bit(data, 1 << 1),
+            afci_alarm_clear: "Unknown".to_string(), // todo
+            pv_sell_first: Self::is_bit_set(data, 1 << 3),
+            volt_watt_en: Self::is_bit_set(data, 1 << 4),
+            triptime_unit: Self::is_bit_set(data, 1 << 5),
+            act_power_cmd_en: Self::is_bit_set(data, 1 << 6),
+            ub_grid_peak_shaving: Self::is_bit_set(data, 1 << 7),
+            ub_gen_peak_shaving: Self::is_bit_set(data, 1 << 8),
+            ub_bat_charge_control: Self::control_bit(data, 1 << 9),
+            ub_bat_dischg_control: Self::control_bit(data, 1 << 10),
+            ub_ac_coupling: Self::is_bit_set(data, 1 << 11),
+            ub_pv_arc_en: Self::is_bit_set(data, 1 << 12),
+            ub_smart_load_en: Self::smart_load_bit(data, 1 << 13),
+            ub_rsd_disable: Self::is_bit_set_reversed(data, 1 << 14),
+            on_grid_always_on: Self::is_bit_set(data, 1 << 15),
+        }
+    }
+} // }}}
+
+// Register224Bits {{{
+#[derive(Clone, Debug, Serialize)]
+pub struct Register224Bits {
+    pub lcd_version: u8,
+    pub lcd_screen_type: String,
+    pub lcd_odm: String,
+    pub lcd_machine_model_code: String,
+}
+impl Register224Bits {
+    fn lcd_screen_type_string(data: u16) -> String {
+        match data {
+            0 => "Screen of B size".to_string(),
+            1 => "Screen of S size".to_string(),
+            _ => "Unknown".to_string(),
+        }
+    }
+    fn lcd_odm_string(data: u16) -> String {
+        match data {
+            0 => "Luxpower".to_string(),
+            1 => "Customized".to_string(),
+            _ => "Unknown".to_string(),
+        }
+    }
+    fn lcd_machine_model_code_string(data: u16) -> String {
+        match data {
+            0 => "LXP 12K".to_string(),
+            1 => "All-in-one".to_string(),
+            2 => "Tri-Phase 20k".to_string(),
+            _ => "Unknown".to_string(),
+        }
+    }
+
+    pub fn new(data: u16) -> Self {
+        Self {
+            lcd_version: (data & 0b11111111) as u8,
+            lcd_screen_type: Self::lcd_screen_type_string((data >> 8) & 1),
+            lcd_odm: Self::lcd_odm_string((data >> 9) & 0b11),
+            lcd_machine_model_code: Self::lcd_machine_model_code_string((data >> 11) & 0b11111),
+        }
+    }
+} // }}}
+
+// Register230Bits {{{
+#[derive(Clone, Debug, Serialize)]
+pub struct Register230Bits {
+    pub meters_num: u8,
+    pub meter_measure_type: String,
+    pub install_phase: String,
+}
+impl Register230Bits {
+    fn meter_measure_type_string(data: u16) -> String {
+        match data {
+            0 => "Meter 1 measure AC, Meter 2 measure PV".to_string(),
+            1 => "Meter 1 measure PV, Meter 2 measure AC".to_string(),
+            _ => "Unknown".to_string(),
+        }
+    }
+    fn install_phase_string(data: u16) -> String {
+        match data {
+            0 => "R phase".to_string(),
+            1 => "S phase".to_string(),
+            2 => "T phase".to_string(),
+            _ => "Unknown".to_string(),
+        }
+    }
+
+    pub fn new(data: u16) -> Self {
+        Self {
+            meters_num: (data & 0b1111) as u8,
+            meter_measure_type: Self::meter_measure_type_string((data >> 8) & 1),
+            install_phase: Self::install_phase_string((data >> 9) & 0b11),
+        }
+    }
+} // }}}
+
+// Register233Bits {{{
+#[derive(Clone, Debug, Serialize)]
+pub struct Register233Bits {
+    pub ub_quick_charge_start_en: String,
+    pub ub_batt_backup_en: String,
+    pub ub_maintenance_en: String,
+    pub ub_working_mode: String,
+}
+impl Register233Bits {
+    fn is_bit_set(data: u16, bit: u16) -> String {
+        if (data & bit) == bit {
+            "ON".to_string()
+        } else {
+            "OFF".to_string()
+        }
+    }
+    fn ub_working_mode_bit(data: u16, bit: u16) -> String {
+        if (data & bit) == bit {
+            "Work mode 2".to_string()
+        } else {
+            "Work mode 1".to_string()
+        }
+    }
+
+    pub fn new(data: u16) -> Self {
+        Self {
+            ub_quick_charge_start_en: Self::is_bit_set(data, 1 << 0),
+            ub_batt_backup_en: Self::is_bit_set(data, 1 << 1),
+            ub_maintenance_en: Self::is_bit_set(data, 1 << 2),
+            ub_working_mode: Self::ub_working_mode_bit(data, 1 << 3),
+        }
+    }
+} // }}}
+
+// Register235Bits {{{
+#[derive(Clone, Debug, Serialize)]
+pub struct Register235Bits {
+    pub no_full_charge_days: u8,
+    pub no_full_charge_days_num_set: u8,
+}
+impl Register235Bits {
+    pub fn new(data: u16) -> Self {
+        Self {
+            no_full_charge_days: (data & 0b11111111) as u8,
+            no_full_charge_days_num_set: ((data & 0b11111111) >> 8) as u8,
+        }
+    }
+} // }}}
+    
 #[enum_dispatch]
 pub trait PacketCommon {
     fn datalog(&self) -> Serial;
@@ -1735,6 +2035,158 @@ impl Parser {
         };
 
         Ok(r)
+    }
+}
+
+// Register 16
+pub struct LanguageString;
+impl LanguageString {
+    pub fn from_value(status: u16) -> &'static str {
+        match status {
+            0 => "English",
+            1 => "German",
+
+            _ => "Unknown",
+        }
+    }
+}
+
+// Register 19
+pub struct DtcDeviceTypeString;
+impl DtcDeviceTypeString {
+    pub fn from_value(status: u16) -> &'static str {
+        match status {
+            0 => "Default",
+            3 => "XOLTA",
+
+            _ => "Unknown",
+        }
+    }
+}
+
+// Register 20
+pub struct PVInputModelStandardString;
+impl PVInputModelStandardString {
+    pub fn from_value(status: u16) -> &'static str {
+        match status {
+            0 => "No PV plug in",
+            1 => "PV1 plug in",
+            2 => "PV2 plug in",
+            3 => "Two PVs in parallel",
+            4 => "Two separate PVs",
+
+            _ => "Unknown",
+        }
+    }
+}
+pub struct PVInputModel12KHybridString;
+impl PVInputModel12KHybridString {
+    pub fn from_value(status: u16) -> &'static str {
+        match status {
+            0 => "No PV plug in",
+            1 => "PV1 plug in",
+            2 => "PV2 plug in",
+            3 => "PV3 plug in",
+            4 => "PV1&2 in",
+            5 => "PV1&3 in",
+            6 => "PV2&3 in",
+            7 => "PV1&2&3 in",
+
+            _ => "Unknown",
+        }
+    }
+}
+pub struct PVInputModelTriPhase6To20KString;
+impl PVInputModelTriPhase6To20KString {
+    pub fn from_value(status: u16) -> &'static str {
+        match status {
+            0 => "All MPPTs with individual PV strings",
+            1 => "PV1&2 in parallel",
+            2 => "PV1&3 in parallel",
+            3 => "PV2&3 in parallel",
+            4 => "PV1&2&3 in parallel",
+
+            _ => "Unknown",
+        }
+    }
+}
+
+// Register 59
+pub struct ReactivePowerCmdTypeString;
+impl ReactivePowerCmdTypeString {
+    pub fn from_value(status: u16) -> &'static str {
+        match status {
+            0 => "Unit power factor",
+            1 => "Fixed power factor",
+            2 => "Default PF curve (American machine: Q(P))",
+            3 => "Custom PF curve",
+            4 => "Capacitive reactive power percentage",
+            5 => "Inductive reactive power percentage",
+            6 => "QV curve",
+            7 => "QV dynamic",
+
+            _ => "Unknown",
+        }
+    }
+}
+
+// Register 112
+pub struct SetSystemTypeString;
+impl SetSystemTypeString {
+    pub fn from_value(status: u16) -> &'static str {
+        match status {
+            0 => "Single Unit",
+            1 => "Single-phase parallel (Primary)",
+            2 => "Single-phase parallel (Secondary)",
+            3 => "Three phase parallel (Master)",
+            4 => "2*208 (Master)",
+            5 => "Inductive reactive power percentage",
+            6 => "QV curve",
+            7 => "QV dynamic",
+
+            _ => "Unknown",
+        }
+    }
+}
+
+// Register 145
+pub struct OutputPrioConfigString;
+impl OutputPrioConfigString {
+    pub fn from_value(status: u16) -> &'static str {
+        match status {
+            0 => "Battery first",
+            1 => "PV first",
+            2 => "AC first",
+            _ => "Unknown",
+        }
+    }
+}
+
+// Register 146
+pub struct LineModeString;
+impl LineModeString {
+    pub fn from_value(status: u16) -> &'static str {
+        match status {
+            0 => "APL (90-280V 20ms)",
+            1 => "UPS (170-280V 10ms)",
+            2 => "GEN (90-280V 20ms)",
+            _ => "Unknown",
+        }
+    }
+}
+
+// Register 205
+pub struct GridTypeString;
+impl GridTypeString {
+    pub fn from_value(status: u16) -> &'static str {
+        match status {
+            0 => "Split 240V/120V",
+            1 => "Tri-phase 208V/120V",
+            2 => "Single 240V",
+            3 => "Single 230V",
+            4 => "Split 200V/100V",
+            _ => "Unknown",
+        }
     }
 }
 
