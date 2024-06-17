@@ -148,6 +148,21 @@ pub struct Number {
     unit_of_measurement: String,
 }
 
+// https://www.home-assistant.io/integrations/number.mqtt/
+#[derive(Debug, Serialize)]
+pub struct UnboundedNumber {
+    name: String,
+    state_topic: String,
+    command_topic: String,
+    value_template: String,
+    unique_id: String,
+    device: Device,
+    availability: Availability,
+    step: f64,
+    unit_of_measurement: String,
+    mode: String,
+}
+
 // https://www.home-assistant.io/integrations/text.mqtt/
 #[derive(Debug, Serialize)]
 pub struct Text {
@@ -1148,6 +1163,10 @@ impl Config {
             self.time_range("forced_discharge/1", "Forced Discharge Timeslot 1")?,
             self.time_range("forced_discharge/2", "Forced Discharge Timeslot 2")?,
             self.time_range("forced_discharge/3", "Forced Discharge Timeslot 3")?,
+            self.number_power(Register::GenRatePower, "Generator Rated Power (W)")?,
+            self.number_percent(Register::GenChargeStartSoc, "Generator Start SOC (%)")?,
+            self.number_percent(Register::GenChargeEndSoc, "Generator End SOC (%)")?,
+            self.number_current(Register::MaxGenChargeBatCurr, "Generator Max Charge Current (A)")?,
         ];
 
         r.append(&mut self.sensors());
@@ -1217,6 +1236,68 @@ impl Config {
             max: 200.0, // some values return 120%, maybe related to fast charge?
             step: 1.0,
             unit_of_measurement: "%".to_string(),
+        };
+
+        Ok(mqtt::Message {
+            topic: self.ha_discovery_topic("number", &format!("{:?}", register)),
+            retain: true,
+            payload: serde_json::to_string(&config)?,
+        })
+    }
+
+    fn number_power(&self, register: Register, label: &str) -> Result<mqtt::Message> {
+        let config = UnboundedNumber {
+            name: label.to_string(),
+            state_topic: format!(
+                "{}/{}/hold/{}",
+                self.mqtt_config.namespace(),
+                self.inverter.datalog(),
+                register as u16,
+            ),
+            command_topic: format!(
+                "{}/cmd/{}/set/hold/{}",
+                self.mqtt_config.namespace(),
+                self.inverter.datalog(),
+                register as u16,
+            ),
+            value_template: "{{ float(value) }}".to_string(),
+            unique_id: format!("lxp_{}_number_{:?}", self.inverter.datalog(), register),
+            device: self.device(),
+            availability: self.availability(),
+            step: 1.0,
+            mode: "box".to_string(),
+            unit_of_measurement: "W".to_string(),
+        };
+
+        Ok(mqtt::Message {
+            topic: self.ha_discovery_topic("number", &format!("{:?}", register)),
+            retain: true,
+            payload: serde_json::to_string(&config)?,
+        })
+    }
+
+    fn number_current(&self, register: Register, label: &str) -> Result<mqtt::Message> {
+        let config = UnboundedNumber {
+            name: label.to_string(),
+            state_topic: format!(
+                "{}/{}/hold/{}",
+                self.mqtt_config.namespace(),
+                self.inverter.datalog(),
+                register as u16,
+            ),
+            command_topic: format!(
+                "{}/cmd/{}/set/hold/{}",
+                self.mqtt_config.namespace(),
+                self.inverter.datalog(),
+                register as u16,
+            ),
+            value_template: "{{ float(value) }}".to_string(),
+            unique_id: format!("lxp_{}_number_{:?}", self.inverter.datalog(), register),
+            device: self.device(),
+            availability: self.availability(),
+            step: 1.0,
+            mode: "box".to_string(),
+            unit_of_measurement: "A".to_string(),
         };
 
         Ok(mqtt::Message {

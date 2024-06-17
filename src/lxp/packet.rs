@@ -849,7 +849,7 @@ pub enum Register {
     GenChargeStartVolt = 194,       // Intitial voltage for generator charging the battery, which will be valid after selecting GenChg according to voltage. (0.1V)
     GenChargeEndVolt = 195,         // Battery voltage at the end of generator charging, which will be valid after selecting GenChg according to voltage. (0.1V)
     GenChargeStartSoc = 196,        // SOC limit for generator charging the battery, which will be valid after selecting charge according to SOC (%)
-    GenChargeEndSoc = 197,          // SOC limit to end thegenerator charging, which will be valid after selecting charge according to SOC (%)
+    GenChargeEndSoc = 197,          // SOC limit to end the generator charging, which will be valid after selecting charge according to SOC (%)
     MaxGenChargeBatCurr = 198,      // Max. Charge current from generator (A)
     OverTempDeratePoint = 199,      // Overtemperature load reduction point (0.1℃)
     ChargePriorityEndVolt = 201,    // Charging priority voltage limit (0.1V)
