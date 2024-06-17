@@ -1149,10 +1149,10 @@ impl Config {
             self.time_range("forced_discharge/1", "Forced Discharge Timeslot 1")?,
             self.time_range("forced_discharge/2", "Forced Discharge Timeslot 2")?,
             self.time_range("forced_discharge/3", "Forced Discharge Timeslot 3")?,
-            self.number_power(Register::GenRatePower, "Generator Rated Power (kW)")?,
+            self.number(Register::GenRatePower, "Generator Rated Power (kW)")?,
             self.number_percent(Register::GenChargeStartSoc, "Generator Start SOC (%)")?,
             self.number_percent(Register::GenChargeEndSoc, "Generator End SOC (%)")?,
-            self.number_current(Register::MaxGenChargeBatCurr, "Generator Max Charge Current (A)")?,
+            self.number(Register::MaxGenChargeBatCurr, "Generator Max Charge Current (A)")?,
         ];
 
         r.append(&mut self.sensors());
@@ -1200,6 +1200,9 @@ impl Config {
     }
 
     fn number_percent(&self, register: Register, label: &str) -> Result<mqtt::Message> {
+        let reg_config = lxp::packet::find_register_config(register as u16);
+        let step = if reg_config.is_none() { 1.0 } else { reg_config.unwrap().scale };
+
         let config = Number {
             name: label.to_string(),
             state_topic: format!(
@@ -1220,7 +1223,7 @@ impl Config {
             availability: self.availability(),
             min: 0.0,
             max: 200.0, // some values return 120%, maybe related to fast charge?
-            step: 1.0,
+            step: step,
             mode: "slider".to_string(),
             unit_of_measurement: "%".to_string(),
         };
@@ -1232,7 +1235,17 @@ impl Config {
         })
     }
 
-    fn number_power(&self, register: Register, label: &str) -> Result<mqtt::Message> {
+    fn number(&self, register: Register, label: &str) -> Result<mqtt::Message> {
+        let reg_config = lxp::packet::find_register_config(register as u16);
+        let mut step = 1.0;
+        let mut uom = "";
+
+        if !reg_config.is_none() {
+            let u_reg_config = reg_config.unwrap();
+            step = u_reg_config.scale;
+            uom = u_reg_config.unit_of_measurement;
+        }
+
         let config = Number {
             name: label.to_string(),
             state_topic: format!(
@@ -1253,42 +1266,9 @@ impl Config {
             availability: self.availability(),
             min: 0.0,
             max: 65535.0,
-            step: 1.0,
+            step: step,
             mode: "box".to_string(),
-            unit_of_measurement: "W".to_string(),
-        };
-
-        Ok(mqtt::Message {
-            topic: self.ha_discovery_topic("number", &format!("{:?}", register)),
-            retain: true,
-            payload: serde_json::to_string(&config)?,
-        })
-    }
-
-    fn number_current(&self, register: Register, label: &str) -> Result<mqtt::Message> {
-        let config = Number {
-            name: label.to_string(),
-            state_topic: format!(
-                "{}/{}/hold/{}",
-                self.mqtt_config.namespace(),
-                self.inverter.datalog(),
-                register as u16,
-            ),
-            command_topic: format!(
-                "{}/cmd/{}/set/hold/{}",
-                self.mqtt_config.namespace(),
-                self.inverter.datalog(),
-                register as u16,
-            ),
-            value_template: "{{ float(value) }}".to_string(),
-            unique_id: format!("lxp_{}_number_{:?}", self.inverter.datalog(), register),
-            device: self.device(),
-            availability: self.availability(),
-            min: 0.0,
-            max: 65535.0,
-            step: 1.0,
-            mode: "box".to_string(),
-            unit_of_measurement: "A".to_string(),
+            unit_of_measurement: uom.to_string(),
         };
 
         Ok(mqtt::Message {

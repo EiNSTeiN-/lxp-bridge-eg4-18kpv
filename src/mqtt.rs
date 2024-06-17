@@ -35,7 +35,7 @@ impl Message {
 
         for (register, value) in td.pairs() {
             let mut scaled_value = value as f64;
-            let config = lxp::packet::FindRegisterConfig(register as u16);
+            let config = lxp::packet::find_register_config(register as u16);
 
             if !config.is_none() {
                 scaled_value = scaled_value * config.unwrap().scale;

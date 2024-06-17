@@ -111,7 +111,7 @@ impl Coordinator {
             }
             SetHold(inverter, register, value) => {
                 let mut scaled_value = value;
-                let config = lxp::packet::FindRegisterConfig(register);
+                let config = lxp::packet::find_register_config(register);
 
                 if !config.is_none() {
                     scaled_value = scaled_value / config.unwrap().scale;

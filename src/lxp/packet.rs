@@ -893,12 +893,17 @@ pub struct RegisterConfig<'a> {
     pub unit_of_measurement: &'a str,
 }
 
-pub fn FindRegisterConfig(register: u16) -> Option<RegisterConfig<'static>> {
+pub fn find_register_config(register: u16) -> Option<RegisterConfig<'static>> {
     let configs = [
         RegisterConfig {
             register: Register::GenRatePower,
             scale: 0.1,
             unit_of_measurement: "kW",
+        },
+        RegisterConfig {
+            register: Register::MaxGenChargeBatCurr,
+            scale: 1.0,
+            unit_of_measurement: "A",
         },
     ];
 
