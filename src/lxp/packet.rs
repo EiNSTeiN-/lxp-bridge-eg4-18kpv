@@ -830,7 +830,7 @@ pub enum Register {
     SocCurveSoc2 = 174,             // SOC reading based on Voltage point 2 (%)
     SocCurveInnerResistance = 175,  // Inner resistance of the battery (mΩ)
     MaxGridInputPower = 176,        // Max. Grid import power limitation (W)
-    GenRatePower = 177,             // The rated power of generator input (W)
+    GenRatePower = 177,             // The rated power of generator input (0.1kW)
     FunctionEnable2 = 179,          // Function Enable 2 bits
     AFCIArcThreshold = 180,         // 
     VoltWattV1 = 181,               // 1.05Vn-1.09Vn, default=1.06Vn (0.1V)
@@ -884,7 +884,31 @@ pub enum Register {
     FloatChargeThreshold = 236,     // When charge current in CV getting lower than this setting, switch to float charge (0.01C)
     GenCoolDownTime = 237,          // Gen cool down time when dry contactor is off (0.1min)
     AllowService = 241,             // 0=disable, non 0=enable
+}
 
+#[derive(Clone)]
+pub struct RegisterConfig<'a> {
+    pub register: Register,
+    pub scale: f64, // raw register value is multiplied by this number. For example, value=171, scale=0.1, readable output=17.1
+    pub unit_of_measurement: &'a str,
+}
+
+pub fn FindRegisterConfig(register: u16) -> Option<RegisterConfig<'static>> {
+    let configs = [
+        RegisterConfig {
+            register: Register::GenRatePower,
+            scale: 0.1,
+            unit_of_measurement: "kW",
+        },
+    ];
+
+    for config in configs {
+        if config.register as u16 == register {
+            return Some(config);
+        }
+    }
+
+    None
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, IntoPrimitive, TryFromPrimitive)]

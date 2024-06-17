@@ -39,7 +39,7 @@ async fn publishes_read_hold_mqtt() {
             mqtt::ChannelData::Message(mqtt::Message {
                 topic: format!("{}/hold/12", inverter.datalog()),
                 retain: true,
-                payload: "1558".to_owned()
+                payload: "1558.0".to_owned()
             })
         );
         // verify nothing sent to influx or database
@@ -229,7 +229,7 @@ async fn complete_path_read_hold_command() {
             mqtt::ChannelData::Message(mqtt::Message {
                 topic: "2222222222/hold/12".to_owned(),
                 retain: true,
-                payload: "1558".to_owned()
+                payload: "1558.0".to_owned()
             })
         );
         assert_eq!(

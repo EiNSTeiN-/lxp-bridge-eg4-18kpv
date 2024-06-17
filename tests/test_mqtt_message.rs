@@ -42,8 +42,30 @@ async fn for_hold_single() {
         vec![mqtt::Message {
             topic: "2222222222/hold/0".to_owned(),
             retain: true,
-            payload: "1".to_owned()
+            payload: "1.0".to_owned()
         }]
+    );
+}
+
+#[tokio::test]
+async fn for_hold_177() {
+    common_setup();
+
+    let inverter = Factory::inverter();
+
+    let packet = lxp::packet::TranslatedData {
+        datalog: inverter.datalog(),
+        device_function: lxp::packet::DeviceFunction::ReadHold,
+        inverter: inverter.serial(),
+        register: 177,
+        values: vec![171, 0],
+    };
+
+    assert_eq!(
+        mqtt::Message::for_hold(packet).unwrap(),
+        vec![
+            mqtt::Message { topic: "2222222222/hold/177".to_owned(), retain: true, payload: "17.1".to_owned() }
+        ]
     );
 }
 
@@ -63,7 +85,7 @@ async fn for_hold_21() {
 
     assert_eq!(
         mqtt::Message::for_hold(packet).unwrap(),
-        vec![mqtt::Message { topic: "2222222222/hold/21".to_owned(), retain: true, payload: "8716".to_owned() },
+        vec![mqtt::Message { topic: "2222222222/hold/21".to_owned(), retain: true, payload: "8716.0".to_owned() },
              mqtt::Message { topic: "2222222222/hold/21/bits".to_owned(), retain: true, payload: "{\"eps_en\":\"OFF\",\"ovf_load_derate_en\":\"OFF\",\"drms_en\":\"ON\",\"lvrt_en\":\"ON\",\"anti_island_en\":\"OFF\",\"neutral_detect_en\":\"OFF\",\"grid_on_power_ss_en\":\"OFF\",\"ac_charge_en\":\"OFF\",\"sw_seamless_en\":\"OFF\",\"set_to_standby\":\"ON\",\"forced_discharge_en\":\"OFF\",\"charge_priority_en\":\"OFF\",\"iso_en\":\"OFF\",\"gfci_en\":\"ON\",\"dci_en\":\"OFF\",\"feed_in_grid_en\":\"OFF\"}".to_owned() }
         ]
     );
@@ -79,7 +101,7 @@ async fn for_hold_21() {
 
     assert_eq!(
         mqtt::Message::for_hold(packet).unwrap(),
-        vec![mqtt::Message { topic: "2222222222/hold/21".to_owned(), retain: true, payload: "2048".to_owned() },
+        vec![mqtt::Message { topic: "2222222222/hold/21".to_owned(), retain: true, payload: "2048.0".to_owned() },
              mqtt::Message { topic: "2222222222/hold/21/bits".to_owned(), retain: true, payload: "{\"eps_en\":\"OFF\",\"ovf_load_derate_en\":\"OFF\",\"drms_en\":\"OFF\",\"lvrt_en\":\"OFF\",\"anti_island_en\":\"OFF\",\"neutral_detect_en\":\"OFF\",\"grid_on_power_ss_en\":\"OFF\",\"ac_charge_en\":\"OFF\",\"sw_seamless_en\":\"OFF\",\"set_to_standby\":\"OFF\",\"forced_discharge_en\":\"OFF\",\"charge_priority_en\":\"ON\",\"iso_en\":\"OFF\",\"gfci_en\":\"OFF\",\"dci_en\":\"OFF\",\"feed_in_grid_en\":\"OFF\"}".to_owned() }
         ]
     );
@@ -101,7 +123,7 @@ async fn for_hold_110() {
 
     assert_eq!(
         mqtt::Message::for_hold(packet).unwrap(),
-        vec![mqtt::Message { topic: "2222222222/hold/110".to_owned(), retain: true, payload: "1033".to_owned() },
+        vec![mqtt::Message { topic: "2222222222/hold/110".to_owned(), retain: true, payload: "1033.0".to_owned() },
              mqtt::Message { topic: "2222222222/hold/110/bits".to_owned(), retain: true, payload: "{\"ub_pv_grid_off_en\":\"ON\",\"ub_run_without_grid\":\"OFF\",\"ub_micro_grid_en\":\"OFF\",\"ub_bat_shared_en\":\"ON\",\"ub_charge_last_en\":\"OFF\",\"ct_sample_ratio\":\"Unknown\",\"buzzer_en\":\"OFF\",\"pv_ct_sample_type\":\"Unknown\",\"take_load_together\":\"ON\",\"on_grid_working_mode\":\"Unknown\",\"pv_ct_sample_ratio\":\"Unknown\",\"green_mode_en\":\"OFF\",\"eco_mode_en\":\"OFF\"}".to_owned() }
         ]
     );
@@ -127,17 +149,17 @@ async fn for_hold_multi() {
             mqtt::Message {
                 topic: "2222222222/hold/12".to_owned(),
                 retain: true,
-                payload: "1558".to_owned()
+                payload: "1558.0".to_owned()
             },
             mqtt::Message {
                 topic: "2222222222/hold/13".to_owned(),
                 retain: true,
-                payload: "2055".to_owned()
+                payload: "2055.0".to_owned()
             },
             mqtt::Message {
                 topic: "2222222222/hold/14".to_owned(),
                 retain: true,
-                payload: "9".to_owned()
+                payload: "9.0".to_owned()
             },
         ]
     );

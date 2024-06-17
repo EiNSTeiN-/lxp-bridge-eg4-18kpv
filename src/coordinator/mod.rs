@@ -109,7 +109,16 @@ impl Coordinator {
                 self.read_time_register(inverter, Action::ForcedDischarge(num))
                     .await
             }
-            SetHold(inverter, register, value) => self.set_hold(inverter, register, value).await,
+            SetHold(inverter, register, value) => {
+                let mut scaled_value = value;
+                let config = lxp::packet::FindRegisterConfig(register);
+
+                if !config.is_none() {
+                    scaled_value = scaled_value / config.unwrap().scale;
+                }
+
+                self.set_hold(inverter, register, scaled_value as u16).await
+            },
             WriteParam(inverter, register, value) => {
                 self.write_param(inverter, register, value).await
             }

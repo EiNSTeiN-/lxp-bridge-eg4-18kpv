@@ -1149,7 +1149,7 @@ impl Config {
             self.time_range("forced_discharge/1", "Forced Discharge Timeslot 1")?,
             self.time_range("forced_discharge/2", "Forced Discharge Timeslot 2")?,
             self.time_range("forced_discharge/3", "Forced Discharge Timeslot 3")?,
-            self.number_power(Register::GenRatePower, "Generator Rated Power (W)")?,
+            self.number_power(Register::GenRatePower, "Generator Rated Power (kW)")?,
             self.number_percent(Register::GenChargeStartSoc, "Generator Start SOC (%)")?,
             self.number_percent(Register::GenChargeEndSoc, "Generator End SOC (%)")?,
             self.number_current(Register::MaxGenChargeBatCurr, "Generator Max Charge Current (A)")?,

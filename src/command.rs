@@ -10,7 +10,7 @@ pub enum Command {
     ReadAcFirstTime(config::Inverter, u16),
     ReadChargePriorityTime(config::Inverter, u16),
     ReadForcedDischargeTime(config::Inverter, u16),
-    SetHold(config::Inverter, u16, u16),
+    SetHold(config::Inverter, u16, f64),
     WriteParam(config::Inverter, u16, u16),
     SetAcChargeTime(config::Inverter, u16, [u8; 4]),
     SetAcFirstTime(config::Inverter, u16, [u8; 4]),

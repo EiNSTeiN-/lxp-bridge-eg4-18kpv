@@ -34,10 +34,17 @@ impl Message {
         let mut r = Vec::new();
 
         for (register, value) in td.pairs() {
+            let mut scaled_value = value as f64;
+            let config = lxp::packet::FindRegisterConfig(register as u16);
+
+            if !config.is_none() {
+                scaled_value = scaled_value * config.unwrap().scale;
+            }
+
             r.push(mqtt::Message {
                 topic: format!("{}/hold/{}", td.datalog, register),
                 retain: true,
-                payload: serde_json::to_string(&value)?,
+                payload: serde_json::to_string(&scaled_value)?,
             });
 
             if register == 21 {
@@ -247,7 +254,7 @@ impl Message {
             ["read", "ac_first", num] => ReadAcFirstTime(inverter, num.parse()?),
             ["read", "charge_priority", num] => ReadChargePriorityTime(inverter, num.parse()?),
             ["read", "forced_discharge", num] => ReadForcedDischargeTime(inverter, num.parse()?),
-            ["set", "hold", register] => SetHold(inverter, register.parse()?, self.payload_int()?),
+            ["set", "hold", register] => SetHold(inverter, register.parse()?, self.payload_float()?),
             ["set", "param", register] => {
                 WriteParam(inverter, register.parse()?, self.payload_int()?)
             }
@@ -339,6 +346,12 @@ impl Message {
         self.payload
             .parse()
             .map_err(|err| anyhow!("payload_int: {}", err))
+    }
+
+    fn payload_float(&self) -> Result<f64> {
+        self.payload
+            .parse()
+            .map_err(|err| anyhow!("payload_float: {}", err))
     }
 
     fn payload_bool(&self) -> bool {
