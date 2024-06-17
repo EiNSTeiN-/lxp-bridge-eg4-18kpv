@@ -104,10 +104,10 @@ jobs:
           machine: arm
           arch: arm
         - build: darwin-amd64
-          os: macos-11
+          os: macos-latest
           target: x86_64-apple-darwin
         - build: darwin-arm64
-          os: macos-11
+          os: macos-latest
           target: aarch64-apple-darwin
 
     steps:
