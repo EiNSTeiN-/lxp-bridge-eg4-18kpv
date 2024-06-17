@@ -80,7 +80,7 @@ impl Coordinator {
 
     async fn process_command(&self, command: Command) -> Result<()> {
         use commands::time_register_ops::Action;
-        use lxp::packet::{Register, RegisterBit};
+        use lxp::packet::{Register, Register21Bit};
         use Command::*;
 
         match command {
@@ -133,7 +133,7 @@ impl Coordinator {
                 self.update_hold(
                     inverter,
                     Register::Register21,
-                    RegisterBit::AcChargeEnable,
+                    Register21Bit::AcChargeEnable.into(),
                     enable,
                 )
                 .await
@@ -142,7 +142,7 @@ impl Coordinator {
                 self.update_hold(
                     inverter,
                     Register::Register21,
-                    RegisterBit::ChargePriorityEnable,
+                    Register21Bit::ChargePriorityEnable.into(),
                     enable,
                 )
                 .await
@@ -152,7 +152,7 @@ impl Coordinator {
                 self.update_hold(
                     inverter,
                     Register::Register21,
-                    RegisterBit::ForcedDischargeEnable,
+                    Register21Bit::ForcedDischargeEnable.into(),
                     enable,
                 )
                 .await
@@ -297,7 +297,7 @@ impl Coordinator {
         &self,
         inverter: config::Inverter,
         register: U,
-        bit: lxp::packet::RegisterBit,
+        bit: u16,
         enable: bool,
     ) -> Result<()>
     where

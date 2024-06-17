@@ -9,7 +9,7 @@ pub struct UpdateHold {
     channels: Channels,
     inverter: config::Inverter,
     register: u16,
-    bit: lxp::packet::RegisterBit,
+    bit: u16,
     enable: bool,
 }
 
@@ -18,7 +18,7 @@ impl UpdateHold {
         channels: Channels,
         inverter: config::Inverter,
         register: U,
-        bit: lxp::packet::RegisterBit,
+        bit: u16,
         enable: bool,
     ) -> Self
     where

@@ -889,13 +889,92 @@ pub enum Register {
 
 #[derive(Clone, Debug, Eq, PartialEq, IntoPrimitive, TryFromPrimitive)]
 #[repr(u16)]
-pub enum RegisterBit {
+pub enum Register21Bit {
     // Register 21
     OffGridModeEnable = 1 << 0,
+    OverfrequencyLoadDerateEnable = 1 << 1,
+    DRMSEnable = 1 << 2,
+    LVTREnable = 1 << 3,
+    AntiIslandEnable = 1 << 4,
+    NeutralDetectEnable = 1 << 5,
+    GridOnPowerSoftStartEnable = 1 << 6,
     AcChargeEnable = 1 << 7,
     OffGridSeamlessSwitchingEnable = 1 << 8,
+    SetToStandby = 1 << 9,
     ForcedDischargeEnable = 1 << 10,
     ChargePriorityEnable = 1 << 11,
+    ISOEnable = 1 << 12,
+    GFCIEnable = 1 << 13,
+    DCIEnable = 1 << 14,
+    FeedInGridEnable = 1 << 15,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, IntoPrimitive, TryFromPrimitive)]
+#[repr(u16)]
+pub enum Register110Bit {
+    // Register 110
+    PVGridOffEnable = 1 << 0,
+    FastZeroExportEnable = 1 << 1,
+    MicroGridEnable = 1 << 2,
+    BatShared = 1 << 3,
+    ChargeLastEnable = 1 << 4,
+    BuzzerEnable = 1 << 7,
+    TakeLoadTogether = 1 << 10,
+    OnGridWorkingMode = 1 << 11,
+    GreenModeEnable = 1 << 14,
+    EcoModeEnable = 1 << 15,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, IntoPrimitive, TryFromPrimitive)]
+#[repr(u16)]
+pub enum Register113Bit {
+    // Register 113
+    ClearDetectedPhases = 1 << 0,
+    SetComposedPhaseR = 1 << 1,
+    SetComposedPhaseS = 2 << 1,
+    SetComposedPhaseT = 3 << 1,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, IntoPrimitive, TryFromPrimitive)]
+#[repr(u16)]
+pub enum Register120Bit {
+    // Register 120
+    HalfHourAcChargeStartEnable = 1 << 0,
+    //AcChargeType = 1 << 0,
+    OnGridEodType = 1 << 6,
+    GenChargeType = 1 << 7,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, IntoPrimitive, TryFromPrimitive)]
+#[repr(u16)]
+pub enum Register179Bit {
+    // Register 179
+    AcCTDirection = 1 << 0,
+    PvCTDirection = 1 << 1,
+    AFCIAlarmClear = 1 << 2,
+    PvSellFirst = 1 << 3,
+    VoltWattEnable = 1 << 4,
+    TriptimeUnit = 1 << 5,
+    ActPowerCmdEnable = 1 << 6,
+    GridPeakShaving = 1 << 7,
+    GenPeakShaving = 1 << 8,
+    BatChargeControl = 1 << 9,
+    BatDischargeControl = 1 << 10,
+    AcCoupling = 1 << 11,
+    PvArcEnable = 1 << 12,
+    SmartLoadEnable = 1 << 13,
+    RsdDisable = 1 << 14,
+    OnGridAlwaysOn = 1 << 15,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, IntoPrimitive, TryFromPrimitive)]
+#[repr(u16)]
+pub enum Register233Bit {
+    // Register 233
+    QuickChargeStartEnable = 1 << 0,
+    BattBackupEnable = 1 << 1,
+    MaintenanceEnable = 1 << 2,
+    WorkingMode = 1 << 3,
 }
 
 // Input71Bits {{{

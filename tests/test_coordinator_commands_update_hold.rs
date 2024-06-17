@@ -9,14 +9,14 @@ async fn happy_path() {
     let channels = Channels::new();
 
     let register = lxp::packet::Register::Register21 as u16;
-    let bit = lxp::packet::RegisterBit::AcChargeEnable;
+    let bit = lxp::packet::Register21Bit::AcChargeEnable;
     let enable = true;
 
     let subject = coordinator::commands::update_hold::UpdateHold::new(
         channels.clone(),
         inverter.clone(),
         register,
-        bit,
+        bit.into(),
         enable,
     );
 
@@ -101,14 +101,14 @@ async fn no_reply() {
     let channels = Channels::new();
 
     let register = lxp::packet::Register::Register21 as u16;
-    let bit = lxp::packet::RegisterBit::AcChargeEnable;
+    let bit = lxp::packet::Register21Bit::AcChargeEnable;
     let enable = true;
 
     let subject = coordinator::commands::update_hold::UpdateHold::new(
         channels.clone(),
         inverter.clone(),
         register,
-        bit,
+        bit.into(),
         enable,
     );
 
