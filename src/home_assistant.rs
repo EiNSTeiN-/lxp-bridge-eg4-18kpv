@@ -146,20 +146,6 @@ pub struct Number {
     max: f64,
     step: f64,
     unit_of_measurement: String,
-}
-
-// https://www.home-assistant.io/integrations/number.mqtt/
-#[derive(Debug, Serialize)]
-pub struct UnboundedNumber {
-    name: String,
-    state_topic: String,
-    command_topic: String,
-    value_template: String,
-    unique_id: String,
-    device: Device,
-    availability: Availability,
-    step: f64,
-    unit_of_measurement: String,
     mode: String,
 }
 
@@ -1235,6 +1221,7 @@ impl Config {
             min: 0.0,
             max: 200.0, // some values return 120%, maybe related to fast charge?
             step: 1.0,
+            mode: "slider".to_string(),
             unit_of_measurement: "%".to_string(),
         };
 
@@ -1246,7 +1233,7 @@ impl Config {
     }
 
     fn number_power(&self, register: Register, label: &str) -> Result<mqtt::Message> {
-        let config = UnboundedNumber {
+        let config = Number {
             name: label.to_string(),
             state_topic: format!(
                 "{}/{}/hold/{}",
@@ -1264,6 +1251,8 @@ impl Config {
             unique_id: format!("lxp_{}_number_{:?}", self.inverter.datalog(), register),
             device: self.device(),
             availability: self.availability(),
+            min: 0.0,
+            max: 65535.0,
             step: 1.0,
             mode: "box".to_string(),
             unit_of_measurement: "W".to_string(),
@@ -1277,7 +1266,7 @@ impl Config {
     }
 
     fn number_current(&self, register: Register, label: &str) -> Result<mqtt::Message> {
-        let config = UnboundedNumber {
+        let config = Number {
             name: label.to_string(),
             state_topic: format!(
                 "{}/{}/hold/{}",
@@ -1295,6 +1284,8 @@ impl Config {
             unique_id: format!("lxp_{}_number_{:?}", self.inverter.datalog(), register),
             device: self.device(),
             availability: self.availability(),
+            min: 0.0,
+            max: 65535.0,
             step: 1.0,
             mode: "box".to_string(),
             unit_of_measurement: "A".to_string(),
