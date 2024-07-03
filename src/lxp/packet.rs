@@ -905,6 +905,11 @@ pub fn find_register_config(register: u16) -> Option<RegisterConfig<'static>> {
             scale: 1.0,
             unit_of_measurement: "A",
         },
+        RegisterConfig {
+            register: Register::GenCoolDownTime,
+            scale: 0.1,
+            unit_of_measurement: "min",
+        },
     ];
 
     for config in configs {

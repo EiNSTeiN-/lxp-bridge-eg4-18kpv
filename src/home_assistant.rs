@@ -1153,6 +1153,7 @@ impl Config {
             self.number_percent(Register::GenChargeStartSoc, "Generator Start SOC (%)")?,
             self.number_percent(Register::GenChargeEndSoc, "Generator End SOC (%)")?,
             self.number(Register::MaxGenChargeBatCurr, "Generator Max Charge Current (A)")?,
+            self.number(Register::GenCoolDownTime, "Generator Cool Down Time (min)")?,
         ];
 
         r.append(&mut self.sensors());
