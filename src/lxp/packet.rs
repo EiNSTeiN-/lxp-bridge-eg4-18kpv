@@ -2351,7 +2351,7 @@ impl WarningCodeString {
             3 => "W003: Meter communication failure",
             4 => "W004: Both charge and discharge forbidden by battery",
             5 => "W005: Auto test failed",
-            6 => "W006: Reserved",
+            6 => "W006: RSD Active",
             7 => "W007: LCD communication failure",
             8 => "W008: FW version mismatch",
             9 => "W009: Fan stuck",
