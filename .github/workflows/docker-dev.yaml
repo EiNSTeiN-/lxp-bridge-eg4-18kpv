@@ -4,34 +4,94 @@ on:
   push:
     branches:
     - master
+  pull_request:
+    branches:
+    - master
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: Publish the verified images to GHCR
+        type: boolean
+        default: false
+      version:
+        description: Image version (dev or a release tag)
+        type: string
+        default: dev
+  workflow_call:
+    inputs:
+      publish:
+        type: boolean
+        default: false
+      version:
+        type: string
+        default: dev
+    secrets:
+      GHCR_RELEASE_TOKEN:
+        required: false
+
+permissions:
+  contents: read
+  packages: write
 
 jobs:
   docker:
-    name: Docker Development Build
-    runs-on: ubuntu-latest
+    name: Docker build (${{ matrix.arch }})
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+        - arch: amd64
+          runner: ubuntu-24.04
+        - arch: aarch64
+          runner: ubuntu-24.04-arm
+    env:
+      BRIDGE_ARCH: ${{ matrix.arch }}
+      BRIDGE_VERSION: ${{ inputs.version || 'dev' }}
+      REGISTRY_NAMESPACE: ghcr.io/einstein-docker
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
 
-      - name: Login to DockerHub Registry
-        uses: docker/login-action@v1
+      - name: Check publishing credentials
+        id: registry
+        env:
+          HAS_RELEASE_TOKEN: ${{ secrets.GHCR_RELEASE_TOKEN != '' }}
+          PUBLISH_REQUESTED: ${{ inputs.publish || github.event_name == 'push' }}
+        run: |
+          if [[ "$PUBLISH_REQUESTED" == true && "$HAS_RELEASE_TOKEN" == true ]]; then
+            echo "publish=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+            if [[ "$PUBLISH_REQUESTED" == true ]]; then
+              echo "::notice::Registry publishing skipped: set GHCR_RELEASE_TOKEN with package access to EiNSTeiN-docker. Verified image archives will still be available."
+            fi
+          fi
+
+      - name: Login to GitHub Container Registry
+        if: steps.registry.outputs.publish == 'true'
+        uses: docker/login-action@v3
         with:
-          username: francoischagnon
-          password: ${{ secrets.DOCKERHUB_PASSWORD }}
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GHCR_RELEASE_TOKEN }}
 
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v1
+      - name: Build and verify the bridge and Home Assistant app
+        run: bash ci/build-images.sh
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v1
+      - name: Publish verified images
+        if: steps.registry.outputs.publish == 'true'
+        run: |
+          docker push "${REGISTRY_NAMESPACE}/lxp-bridge-eg4-18kpv-${BRIDGE_ARCH}:${BRIDGE_VERSION}"
+          docker push "${REGISTRY_NAMESPACE}/lxp-bridge-eg4-18kpv-addon-${BRIDGE_ARCH}:${BRIDGE_VERSION}"
 
-      - name: Build and push
-        uses: docker/build-push-action@v2
+      - name: Export the verified app image
+        run: |
+          docker save --output "${RUNNER_TEMP}/eg4-addon-${BRIDGE_ARCH}.tar" \
+            "${REGISTRY_NAMESPACE}/lxp-bridge-eg4-18kpv-${BRIDGE_ARCH}:${BRIDGE_VERSION}" \
+            "${REGISTRY_NAMESPACE}/lxp-bridge-eg4-18kpv-addon-${BRIDGE_ARCH}:${BRIDGE_VERSION}"
+
+      - uses: actions/upload-artifact@v4
         with:
-          context: .
-          file: ci/Dockerfile
-          push: true
-          tags: francoischagnon/lxp-bridge:dev
-          platforms: |
-            linux/amd64
-            linux/arm64
-            linux/arm/v7
+          name: eg4-addon-${{ matrix.arch }}
+          path: ${{ runner.temp }}/eg4-addon-${{ matrix.arch }}.tar
+          compression-level: 0

@@ -1,20 +1,20 @@
-# https://hub.docker.com/repository/docker/celsworth/lxp-bridge
-#
-# Building/publishing:
-# docker build -t francoischagnon/lxp-bridge .
-# docker push francoischagnon/lxp-bridge:latest
-#
-
-FROM rust:latest as builder
+# syntax=docker/dockerfile:1
+FROM rust:1.90-bookworm AS builder
 WORKDIR /usr/src/lxp-bridge
-COPY Cargo.toml .
-COPY Cargo.lock .
+COPY Cargo.toml Cargo.lock build.rs ./
+COPY .cargo .cargo
 COPY src src
 COPY db db
-RUN cargo install --path .
+RUN cargo build --locked --release
 
+FROM builder AS test
+COPY tests tests
+COPY config.yaml.example ./
+RUN cargo test --locked --features=mocks
 
-FROM debian:bullseye-slim
-RUN apt-get update && apt-get install -y libssl1.1 && rm -rf /var/lib/apt/lists/*
-COPY --from=builder /usr/local/cargo/bin/lxp-bridge /usr/local/bin/lxp-bridge
+FROM debian:bookworm-slim
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ca-certificates libssl3 libsqlite3-0 \
+    && rm -rf /var/lib/apt/lists/*
+COPY --from=builder /usr/src/lxp-bridge/target/release/lxp-bridge /usr/local/bin/lxp-bridge
 ENTRYPOINT ["lxp-bridge", "-c", "/etc/config.yaml"]

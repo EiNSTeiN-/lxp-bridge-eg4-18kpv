@@ -1,11 +1,11 @@
 name: lxp-bridge-eg4-18kpv
-version: v0.13.0-eg4-18kpv
+version: v0.13.1-eg4-18kpv
 slug: lxp-bridge-eg4-18kpv
 description: Allows local communication with EG4 18kPV inverters and bridges it to MQTT
 arch:
-- armv7
 - aarch64
 - amd64
+image: ghcr.io/einstein-docker/lxp-bridge-eg4-18kpv-addon-{arch}
 url: "https://github.com/EiNSTeiN-/lxp-bridge-eg4-18kpv"
 init: false
 startup: application
