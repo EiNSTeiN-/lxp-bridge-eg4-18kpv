@@ -73,7 +73,6 @@ jobs:
   build:
     name: Build ${{ matrix.build }}
     runs-on: ${{ matrix.os }}
-    continue-on-error: true
     needs: test
     strategy:
       matrix:
@@ -132,8 +131,9 @@ jobs:
           export ARCH=${{ matrix.arch }}
           export CC=${{ matrix.gcc }}
           cd openssl-1.1.1l && ./config shared && make
-          echo "OPENSSL_LIB_DIR=$HOME/openssl-1.1.1l" >> "$GITHUB_ENV"
-          echo "OPENSSL_INCLUDE_DIR=$HOME/openssl-1.1.1l/include" >> "$GITHUB_ENV"
+          openssl_target_prefix="$(printf '%s' '${{ matrix.target }}' | tr '[:lower:]-' '[:upper:]_')"
+          echo "${openssl_target_prefix}_OPENSSL_LIB_DIR=$HOME/openssl-1.1.1l" >> "$GITHUB_ENV"
+          echo "${openssl_target_prefix}_OPENSSL_INCLUDE_DIR=$HOME/openssl-1.1.1l/include" >> "$GITHUB_ENV"
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable

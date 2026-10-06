@@ -1,3 +1,13 @@
+# v0.13.1-eg4-18kpv
+
+- Fix builds on current Home Assistant Supervisor by using an explicit base image.
+- Build the EG4 bridge from this fork and use prebuilt ARM64 and AMD64 app images
+  in the owner's `EiNSTeiN-docker` registry namespace.
+- Use matching Debian Bookworm libraries and JSON options directly, removing the
+  Alpine edge package dependency.
+- Verify the existing Rust tests and isolated app startup before exporting or
+  publishing images.
+
 # 0.13.0 - 27th October 2023
 
 * **BREAKING CHANGE**: Simplify scheduler.timesync configuration to appease HA (#209)

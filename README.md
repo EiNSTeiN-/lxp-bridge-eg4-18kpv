@@ -12,20 +12,21 @@ Click the icon below to add this repository to your Home Assistant instance or f
 ## Pre-built images
 This fork builds its own images in GitHub Container Registry. Native ARM64 and
 AMD64 builds compile the checked-out source and verify the standalone bridge and
-Home Assistant app before publishing.
+Home Assistant app before exporting image archives or publishing.
 
 - Standalone bridge: `ghcr.io/einstein-docker/lxp-bridge-eg4-18kpv-aarch64:dev`
 - Home Assistant app: `ghcr.io/einstein-docker/lxp-bridge-eg4-18kpv-addon-aarch64:dev`
 
-Replace `aarch64` with `amd64` for x86 systems. Development images are published
-on pushes to `master`; published GitHub releases use the release tag. The release
+Replace `aarch64` with `amd64` for x86 systems. With publishing credentials configured,
+development images are published on pushes to `master`; published GitHub releases use the release tag. The release
 tag must match `version` in `addon/config.yaml` before installing the stable app.
 The workflow also supports manual builds, with publishing disabled by default.
 Publishing requires a `GHCR_RELEASE_TOKEN` repository secret with `read:packages`
 and `write:packages` access to the `EiNSTeiN-docker` organization. This is the same
 namespace used by the Documentarian app; the personal GitHub account's trailing
 hyphen cannot be used in a Docker image name. Builds and downloadable image
-artifacts do not require publishing credentials.
+artifacts do not require publishing credentials. Without the secret, publishing
+is skipped with a workflow notice and the verified archives remain available.
 
 Home Assistant installs the prebuilt app image. Its Dockerfile uses the Home
 Assistant Debian Bookworm base explicitly, so it does not depend on Supervisor's
