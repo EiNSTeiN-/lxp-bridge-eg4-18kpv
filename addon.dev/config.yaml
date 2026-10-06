@@ -3,9 +3,9 @@ version: dev
 slug: lxp-bridge-eg4-18kpv-dev
 description: Allows local communication with Luxpower inverters and bridges it to MQTT
 arch:
-- armv7
 - aarch64
 - amd64
+image: ghcr.io/einstein-docker/lxp-bridge-eg4-18kpv-addon-{arch}
 url: "https://github.com/EiNSTeiN-/lxp-bridge-eg4-18kpv"
 init: false
 startup: application

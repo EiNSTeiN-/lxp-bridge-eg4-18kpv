@@ -16,9 +16,9 @@ jobs:
       contents: read
       security-events: write
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
 
-      - uses: actions/cache@v2
+      - uses: actions/cache@v4
         with:
           path: |
             /usr/share/rust
@@ -27,11 +27,10 @@ jobs:
           key: clippy-${{ hashFiles('**/Cargo.lock') }}
 
       - name: Install Rust
-        uses: actions-rs/toolchain@v1
+        uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: stable
-          profile: minimal
-          override: true
+          toolchain: "1.90"
+          components: clippy
 
       - name: Install required cargo
         run: cargo install clippy-sarif sarif-fmt
@@ -44,7 +43,7 @@ jobs:
         continue-on-error: true
 
       - name: Upload analysis results to GitHub
-        uses: github/codeql-action/upload-sarif@v2
+        uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: rust-clippy-results.sarif
           wait-for-processing: true
@@ -53,9 +52,9 @@ jobs:
     name: Test
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
 
-      - uses: actions/cache@v2
+      - uses: actions/cache@v4
         with:
           path: |
             /usr/share/rust
@@ -64,17 +63,12 @@ jobs:
           key: test-${{ hashFiles('**/Cargo.lock') }}
 
       - name: Install Rust
-        uses: actions-rs/toolchain@v1
+        uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: stable
-          profile: minimal
-          override: true
+          toolchain: "1.90"
 
       - name: Run tests
-        uses: actions-rs/cargo@v1
-        with:
-          command: test
-          args: --features=mocks
+        run: cargo test --locked --features=mocks
 
   build:
     name: Build ${{ matrix.build }}
@@ -111,9 +105,9 @@ jobs:
           target: aarch64-apple-darwin
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
 
-      - uses: actions/cache@v2
+      - uses: actions/cache@v4
         with:
           path: |
             /usr/share/rust
@@ -138,29 +132,24 @@ jobs:
           export ARCH=${{ matrix.arch }}
           export CC=${{ matrix.gcc }}
           cd openssl-1.1.1l && ./config shared && make
-          echo OPENSSL_LIB_DIR=~/openssl-1.1.1l >>$GITHUB_ENV
-          echo OPENSSL_INCLUDE_DIR=~/openssl-1.1.1l/include >>$GITHUB_ENV
+          echo "OPENSSL_LIB_DIR=$HOME/openssl-1.1.1l" >> "$GITHUB_ENV"
+          echo "OPENSSL_INCLUDE_DIR=$HOME/openssl-1.1.1l/include" >> "$GITHUB_ENV"
 
       - name: Install Rust
-        uses: actions-rs/toolchain@v1
+        uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: stable
-          profile: minimal
-          override: true
-          target: ${{ matrix.target }}
+          toolchain: "1.90"
+          targets: ${{ matrix.target }}
 
       - name: Build release binary
-        uses: actions-rs/cargo@v1
-        with:
-          command: build
-          args: --release --target ${{ matrix.target }}
+        run: cargo build --locked --release --target "${{ matrix.target }}"
 
       - name: Rename release binary
         run: |
           mv target/${{ matrix.target }}/release/lxp-bridge lxp-bridge.${{ matrix.build }}
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: lxp-bridge.${{ matrix.build }}
           path: lxp-bridge.${{ matrix.build }}

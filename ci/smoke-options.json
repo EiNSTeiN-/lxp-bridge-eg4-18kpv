@@ -1,0 +1,8 @@
+{
+  "loglevel": "info",
+  "inverters": [],
+  "databases": [],
+  "mqtt": {"enabled": false, "host": "localhost"},
+  "influx": {"enabled": false, "url": "http://localhost:8086", "database": "unused"},
+  "scheduler": {"enabled": false}
+}
