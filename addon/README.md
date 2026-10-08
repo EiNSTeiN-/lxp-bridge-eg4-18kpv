@@ -22,6 +22,10 @@ for older unencrypted dongles. Both types can be configured in the same app.
 This release supports the BJ-series ENC dongle running V3.03. Ensure `serial`
 is the inverter serial and `datalog` is the dongle serial; quote both values.
 
+Use only one local client per ENC dongle. Another add-on or application can
+displace its existing connection. Stop the old instance when switching between
+the development and stable add-ons.
+
 
 [aarch64-shield]: https://img.shields.io/badge/aarch64-yes-green.svg
 [amd64-shield]: https://img.shields.io/badge/amd64-yes-green.svg

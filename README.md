@@ -70,4 +70,9 @@ use its own transport, so an older BA dongle and an ENC dongle can run together.
 TLS authentication failures are logged and retried; the bridge does not fall
 back to plaintext when `tls: true` is configured.
 
+Use one local client per ENC dongle. A connection attempt from another add-on
+or application can close the existing TLS connection, even if that other client
+fails authentication. When switching between the development and stable add-ons,
+stop the old instance before starting the new one with the same dongle.
+
 Full documentation is now in the [Wiki](https://github.com/celsworth/lxp-bridge/wiki).
