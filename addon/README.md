@@ -12,6 +12,16 @@ It allows you to monitor and control your inverter locally without any dependenc
 
 Full documentation can be found in the [Wiki](https://github.com/celsworth/lxp-bridge/wiki).
 
+## ENC dongles
+
+Set `tls: true` in the inverter entry for an **E Wi-Fi ENC** dongle. Port 8000
+uses TLS-PSK; the bridge derives its key from the configured `datalog` serial.
+No cloud credentials or dongle PIN are needed. Leave `tls` omitted or `false`
+for older unencrypted dongles. Both types can be configured in the same app.
+
+This release supports the BJ-series ENC dongle running V3.03. Ensure `serial`
+is the inverter serial and `datalog` is the dongle serial; quote both values.
+
 
 [aarch64-shield]: https://img.shields.io/badge/aarch64-yes-green.svg
 [amd64-shield]: https://img.shields.io/badge/amd64-yes-green.svg

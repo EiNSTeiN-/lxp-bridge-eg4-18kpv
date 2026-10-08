@@ -21,6 +21,7 @@ impl Factory {
             host: "localhost".to_owned(),
             datalog: Serial::from_str("2222222222").unwrap(),
             serial: Serial::from_str("5555555555").unwrap(),
+            tls: None,
             heartbeats: None,
             publish_holdings_on_connect: None,
             read_timeout: None,

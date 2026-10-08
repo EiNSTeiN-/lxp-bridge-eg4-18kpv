@@ -45,4 +45,29 @@ them.
 
 ## Documentation
 
+### Encrypted EG4 dongles
+
+For dongles listed as **E Wi-Fi ENC**, set `tls: true` on that inverter entry.
+This enables TLS 1.2 with the dongle's pre-shared-key protocol on port 8000.
+The key is derived automatically from `datalog`, which must be the correct
+10-character dongle serial. No cloud credentials or dongle PIN are required.
+This transport was verified against an EG4 BJ-series dongle running V3.03.
+
+```yaml
+inverters:
+- enabled: true
+  host: 192.168.0.10
+  port: 8000
+  serial: "1234567890"
+  datalog: "BJ12345678"
+  tls: true
+  heartbeats: true
+  publish_holdings_on_connect: true
+```
+
+Leave `tls` omitted or `false` for older unencrypted dongles. Each inverter can
+use its own transport, so an older BA dongle and an ENC dongle can run together.
+TLS authentication failures are logged and retried; the bridge does not fall
+back to plaintext when `tls: true` is configured.
+
 Full documentation is now in the [Wiki](https://github.com/celsworth/lxp-bridge/wiki).

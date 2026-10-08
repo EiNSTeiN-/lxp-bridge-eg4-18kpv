@@ -33,6 +33,7 @@ pub struct Inverter {
     #[serde(deserialize_with = "de_serial")]
     pub datalog: Serial,
 
+    pub tls: Option<bool>,
     pub heartbeats: Option<bool>,
     pub publish_holdings_on_connect: Option<bool>,
     pub read_timeout: Option<u64>,
@@ -56,6 +57,10 @@ impl Inverter {
 
     pub fn datalog(&self) -> Serial {
         self.datalog
+    }
+
+    pub fn tls(&self) -> bool {
+        self.tls == Some(true)
     }
 
     pub fn heartbeats(&self) -> bool {

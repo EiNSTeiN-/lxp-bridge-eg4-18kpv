@@ -1,3 +1,9 @@
+# v0.13.2-eg4-18kpv - 8th October 2026
+
+* Add optional TLS-PSK transport for E Wi-Fi ENC dongles (`inverters[].tls: true`).
+* Validate 16-bit frame lengths for larger responses from newer dongles.
+* Avoid losing startup commands and close connections promptly on shutdown.
+
 # Unreleased
 
 * Reconnect to inverter after 15 minutes of not receiving any data (#223)

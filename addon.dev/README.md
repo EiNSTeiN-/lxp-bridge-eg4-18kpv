@@ -15,6 +15,10 @@ It allows you to monitor and control your inverter locally without any dependenc
 
 Full documentation can be found in the [Wiki](https://github.com/celsworth/lxp-bridge/wiki).
 
+For an **E Wi-Fi ENC** dongle, set `tls: true` on its inverter entry. The TLS-PSK
+key is derived from `datalog`; no cloud login or PIN is needed. Leave `tls`
+omitted or `false` for older unencrypted dongles.
+
 
 [aarch64-shield]: https://img.shields.io/badge/aarch64-yes-green.svg
 [amd64-shield]: https://img.shields.io/badge/amd64-yes-green.svg

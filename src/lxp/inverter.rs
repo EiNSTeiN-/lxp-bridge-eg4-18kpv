@@ -3,7 +3,7 @@ use crate::prelude::*;
 use {
     async_trait::async_trait,
     serde::{Serialize, Serializer},
-    tokio::io::{AsyncReadExt, AsyncWriteExt},
+    tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt},
 };
 
 #[derive(Eq, PartialEq, Debug, Clone)]
@@ -184,20 +184,38 @@ impl Inverter {
         let stream = tokio::net::TcpStream::connect(inverter_hp).await?;
         let std_stream = stream.into_std()?;
         std_stream.set_keepalive(Some(std::time::Duration::new(60, 0)))?;
-        let (reader, writer) = tokio::net::TcpStream::from_std(std_stream)?.into_split();
+        let stream = tokio::net::TcpStream::from_std(std_stream)?;
+
+        if self.config().tls() {
+            let stream = lxp::tls::connect(stream, self.config().datalog()).await?;
+            self.run_connection(stream).await
+        } else {
+            self.run_connection(stream).await
+        }
+    }
+
+    async fn run_connection<S>(&self, stream: S) -> Result<()>
+    where
+        S: AsyncRead + AsyncWrite + Unpin,
+    {
+        let (reader, writer) = tokio::io::split(stream);
+        // Subscribe before announcing Connected so startup reads cannot be lost.
+        let outgoing = self.channels.to_inverter.subscribe();
 
         info!("inverter {}: connected!", self.config().datalog());
         self.channels
             .from_inverter
             .send(ChannelData::Connected(self.config().datalog()))?;
 
-        futures::try_join!(self.sender(writer), self.receiver(reader))?;
-
-        Ok(())
+        // Dropping the other half also closes TLS connections on shutdown/error.
+        tokio::select! {
+            result = self.sender(writer, outgoing) => result,
+            result = self.receiver(reader) => result,
+        }
     }
 
     // inverter -> coordinator
-    async fn receiver(&self, mut socket: tokio::net::tcp::OwnedReadHalf) -> Result<()> {
+    async fn receiver<R: AsyncRead + Unpin>(&self, mut socket: R) -> Result<()> {
         use std::time::Duration;
         use tokio::time::timeout;
         use {bytes::BytesMut, tokio_util::codec::Decoder};
@@ -259,9 +277,11 @@ impl Inverter {
     }
 
     // coordinator -> inverter
-    async fn sender(&self, mut socket: tokio::net::tcp::OwnedWriteHalf) -> Result<()> {
-        let mut receiver = self.channels.to_inverter.subscribe();
-
+    async fn sender<W: AsyncWrite + Unpin>(
+        &self,
+        mut socket: W,
+        mut receiver: Receiver,
+    ) -> Result<()> {
         use ChannelData::*;
 
         loop {

@@ -2122,7 +2122,7 @@ impl PacketCommon for WriteParam {
 pub struct Parser;
 impl Parser {
     pub fn parse(input: &[u8]) -> Result<Packet> {
-        let input_len = input.len() as u8;
+        let input_len = input.len();
         if input_len < 18 {
             bail!("packet less than 18 bytes?");
         }
@@ -2131,11 +2131,12 @@ impl Parser {
             bail!("invalid packet prefix");
         }
 
-        if input_len < input[4] - 6 {
+        let frame_len = 6 + usize::from(u16::from_le_bytes([input[4], input[5]]));
+        if input_len != frame_len {
             bail!(
                 "Parser::parse mismatch: input.len()={},  frame_length={}",
                 input_len,
-                input[4] - 6
+                frame_len
             );
         }
 
