@@ -25,8 +25,18 @@ fn inverter_defaults() {
         json!({ "host": "host", "port": 8000, "serial": "TESTSERIAL", "datalog": "TESTDATALO" });
     let inverter: config::Inverter = serde_json::from_value(input).unwrap();
     assert!(inverter.enabled());
+    assert!(!inverter.tls());
     assert_eq!(inverter.heartbeats(), false);
     assert_eq!(inverter.publish_holdings_on_connect(), false);
+}
+
+#[test]
+fn inverter_tls_is_opt_in() {
+    for enabled in [false, true] {
+        let input = json!({ "host": "host", "port": 8000, "serial": "TESTSERIAL", "datalog": "TESTDATALO", "tls": enabled });
+        let inverter: config::Inverter = serde_json::from_value(input).unwrap();
+        assert_eq!(inverter.tls(), enabled);
+    }
 }
 
 #[test]
@@ -84,6 +94,7 @@ fn enabled_inverters() {
             host: "localhost".to_owned(),
             port: 8000,
             serial: example_serial(),
+            tls: None,
             heartbeats: None,
             publish_holdings_on_connect: None,
             read_timeout: None,
@@ -94,6 +105,7 @@ fn enabled_inverters() {
             host: "localhost".to_owned(),
             port: 8000,
             serial: example_serial(),
+            tls: None,
             heartbeats: None,
             publish_holdings_on_connect: None,
             read_timeout: None,
@@ -114,6 +126,7 @@ fn inverters_for_message() {
             host: "localhost".to_owned(),
             port: 8000,
             serial: example_serial(),
+            tls: None,
             heartbeats: None,
             publish_holdings_on_connect: None,
             read_timeout: None,
@@ -124,6 +137,7 @@ fn inverters_for_message() {
             host: "localhost".to_owned(),
             port: 8000,
             serial: example_serial(),
+            tls: None,
             heartbeats: None,
             publish_holdings_on_connect: None,
             read_timeout: None,

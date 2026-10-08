@@ -1,3 +1,13 @@
+# v0.13.2-eg4-18kpv
+
+- Add optional `tls: true` per inverter for local TLS-PSK access to E Wi-Fi ENC
+  dongles, verified against BJ-series firmware V3.03.
+- Keep plain TCP as the default for existing dongles; derive TLS credentials
+  automatically from the dongle serial.
+- Validate full 16-bit packet lengths so larger telemetry frames are accepted.
+- Subscribe to outgoing commands before reporting a connection, and close both
+  transport halves promptly on shutdown or connection errors.
+
 # v0.13.1-eg4-18kpv
 
 - Fix builds on current Home Assistant Supervisor by using an explicit base image.
