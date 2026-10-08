@@ -1,3 +1,10 @@
+# v0.14.1-eg4-18kpv
+
+- Correct the release sequence after the older 0.14.0 development binary.
+- Display the concrete release version for both stable and development apps.
+- Verify that image labels and the compiled bridge match the app version.
+- Includes local ENC dongle TLS-PSK support from v0.13.2-eg4-18kpv.
+
 # v0.13.2-eg4-18kpv
 
 - Add optional `tls: true` per inverter for local TLS-PSK access to E Wi-Fi ENC

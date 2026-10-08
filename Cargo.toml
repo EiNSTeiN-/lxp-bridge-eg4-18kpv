@@ -1,6 +1,6 @@
 [package]
 name = "lxp-bridge"
-version = "0.13.2-eg4-18kpv"
+version = "0.14.1-eg4-18kpv"
 authors = ["Chris Elsworth <chris@cae.me.uk>"]
 edition = "2021"
 repository = "https://github.com/EiNSteiN-/lxp-bridge-eg4-18kpv"

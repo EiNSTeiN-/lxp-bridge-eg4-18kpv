@@ -76,19 +76,36 @@ jobs:
           password: ${{ secrets.GHCR_RELEASE_TOKEN }}
 
       - name: Build and verify the bridge and Home Assistant app
+        id: images
         run: bash ci/build-images.sh
 
       - name: Publish verified images
         if: steps.registry.outputs.publish == 'true'
+        env:
+          IMAGE_VERSION: ${{ steps.images.outputs.version }}
         run: |
-          docker push "${REGISTRY_NAMESPACE}/lxp-bridge-eg4-18kpv-${BRIDGE_ARCH}:${BRIDGE_VERSION}"
-          docker push "${REGISTRY_NAMESPACE}/lxp-bridge-eg4-18kpv-addon-${BRIDGE_ARCH}:${BRIDGE_VERSION}"
+          docker push "${REGISTRY_NAMESPACE}/lxp-bridge-eg4-18kpv-${BRIDGE_ARCH}:${IMAGE_VERSION}"
+          docker push "${REGISTRY_NAMESPACE}/lxp-bridge-eg4-18kpv-addon-${BRIDGE_ARCH}:${IMAGE_VERSION}"
+          if [[ "$BRIDGE_VERSION" == dev ]]; then
+            docker push "${REGISTRY_NAMESPACE}/lxp-bridge-eg4-18kpv-${BRIDGE_ARCH}:dev"
+            docker push "${REGISTRY_NAMESPACE}/lxp-bridge-eg4-18kpv-addon-${BRIDGE_ARCH}:dev"
+          fi
 
       - name: Export the verified app image
+        env:
+          IMAGE_VERSION: ${{ steps.images.outputs.version }}
         run: |
-          docker save --output "${RUNNER_TEMP}/eg4-addon-${BRIDGE_ARCH}.tar" \
-            "${REGISTRY_NAMESPACE}/lxp-bridge-eg4-18kpv-${BRIDGE_ARCH}:${BRIDGE_VERSION}" \
-            "${REGISTRY_NAMESPACE}/lxp-bridge-eg4-18kpv-addon-${BRIDGE_ARCH}:${BRIDGE_VERSION}"
+          image_tags=(
+            "${REGISTRY_NAMESPACE}/lxp-bridge-eg4-18kpv-${BRIDGE_ARCH}:${IMAGE_VERSION}"
+            "${REGISTRY_NAMESPACE}/lxp-bridge-eg4-18kpv-addon-${BRIDGE_ARCH}:${IMAGE_VERSION}"
+          )
+          if [[ "$BRIDGE_VERSION" == dev ]]; then
+            image_tags+=(
+              "${REGISTRY_NAMESPACE}/lxp-bridge-eg4-18kpv-${BRIDGE_ARCH}:dev"
+              "${REGISTRY_NAMESPACE}/lxp-bridge-eg4-18kpv-addon-${BRIDGE_ARCH}:dev"
+            )
+          fi
+          docker save --output "${RUNNER_TEMP}/eg4-addon-${BRIDGE_ARCH}.tar" "${image_tags[@]}"
 
       - uses: actions/upload-artifact@v4
         with:

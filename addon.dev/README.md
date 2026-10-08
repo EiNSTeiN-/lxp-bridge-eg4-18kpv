@@ -1,6 +1,7 @@
 # Home Assistant addon: lxp-bridge
 
-> Please note this is the *dev* version of lxp-bridge and will update with every push to the repository.
+> This is the development variant of lxp-bridge. It reports a concrete release
+> version so Home Assistant can detect updates; each release must bump that version.
 > Only use this in preference to the release version if you need one of the latest unlreeased changes.
 
 Allows local communication with Luxpower inverters and bridges to MQTT.

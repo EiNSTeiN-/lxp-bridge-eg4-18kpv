@@ -1,3 +1,10 @@
+# v0.14.1-eg4-18kpv - 8th October 2026
+
+* Correct the release sequence after the earlier 0.14.0 development builds.
+* Report the concrete release version in both Home Assistant app variants.
+* Build versioned images, verify binary and app-label versions, and retain dev aliases.
+* Includes the ENC dongle support introduced in v0.13.2-eg4-18kpv.
+
 # v0.13.2-eg4-18kpv - 8th October 2026
 
 * Add optional TLS-PSK transport for E Wi-Fi ENC dongles (`inverters[].tls: true`).
