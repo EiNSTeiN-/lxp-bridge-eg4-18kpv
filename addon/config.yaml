@@ -1,5 +1,5 @@
 name: lxp-bridge-eg4-18kpv
-version: v0.13.2-eg4-18kpv
+version: v0.14.1-eg4-18kpv
 slug: lxp-bridge-eg4-18kpv
 description: Allows local communication with EG4 18kPV inverters and bridges it to MQTT
 arch:

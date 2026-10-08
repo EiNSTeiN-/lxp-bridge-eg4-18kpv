@@ -20,6 +20,11 @@ Home Assistant app before exporting image archives or publishing.
 Replace `aarch64` with `amd64` for x86 systems. With publishing credentials configured,
 development images are published on pushes to `master`; published GitHub releases use the release tag. The release
 tag must match `version` in `addon/config.yaml` before installing the stable app.
+Both app variants use concrete release versions. Builds verify that the app
+version, compiled bridge version, and image label agree. Development builds
+also retain the `dev` image aliases; exported archives contain both aliases
+and the versioned tags. Bump `Cargo.toml`, `Cargo.lock`, and both app configs
+together when releasing a new build so Home Assistant can detect the update.
 The workflow also supports manual builds, with publishing disabled by default.
 Publishing requires a `GHCR_RELEASE_TOKEN` repository secret with `read:packages`
 and `write:packages` access to the `EiNSTeiN-docker` organization. This is the same
