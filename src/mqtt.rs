@@ -254,38 +254,45 @@ impl Message {
             ["read", "ac_first", num] => ReadAcFirstTime(inverter, num.parse()?),
             ["read", "charge_priority", num] => ReadChargePriorityTime(inverter, num.parse()?),
             ["read", "forced_discharge", num] => ReadForcedDischargeTime(inverter, num.parse()?),
-            ["set", "hold", register] => SetHold(inverter, register.parse()?, self.payload_float()?),
+            ["set", "hold", register] => {
+                SetHold(inverter, register.parse()?, self.payload_float()?)
+            }
             ["set", "param", register] => {
                 WriteParam(inverter, register.parse()?, self.payload_int()?)
             }
-            ["set", "ac_charge"] => AcCharge(inverter, self.payload_bool()),
+            ["set", "ac_charge"] => AcCharge(inverter, self.payload_bool()?),
             ["set", "ac_charge", num] => {
                 SetAcChargeTime(inverter, num.parse()?, self.payload_start_end_time()?)
             }
             ["set", "ac_first", num] => {
                 SetAcFirstTime(inverter, num.parse()?, self.payload_start_end_time()?)
             }
-            ["set", "charge_priority"] => ChargePriority(inverter, self.payload_bool()),
+            ["set", "charge_priority"] => ChargePriority(inverter, self.payload_bool()?),
             ["set", "charge_priority", num] => {
                 SetChargePriorityTime(inverter, num.parse()?, self.payload_start_end_time()?)
             }
-            ["set", "forced_discharge"] => ForcedDischarge(inverter, self.payload_bool()),
+            ["set", "forced_discharge"] => ForcedDischarge(inverter, self.payload_bool()?),
             ["set", "forced_discharge", num] => {
                 SetForcedDischargeTime(inverter, num.parse()?, self.payload_start_end_time()?)
             }
-            ["set", "charge_rate_pct"] => ChargeRate(inverter, self.payload_int()?),
-            ["set", "discharge_rate_pct"] => DischargeRate(inverter, self.payload_int()?),
-            ["set", "ac_charge_rate_pct"] => AcChargeRate(inverter, self.payload_int()?),
+            ["set", "charge_rate_pct"] => ChargeRate(inverter, self.payload_percent()?),
+            ["set", "discharge_rate_pct"] => DischargeRate(inverter, self.payload_percent()?),
+            ["set", "ac_charge_rate_pct"] => AcChargeRate(inverter, self.payload_percent()?),
 
-            ["set", "ac_charge_soc_limit_pct"] => AcChargeSocLimit(inverter, self.payload_int()?),
+            ["set", "ac_charge_soc_limit_pct"] => AcChargeSocLimit(inverter, self.payload_percent()?),
 
             ["set", "discharge_cutoff_soc_limit_pct"] => {
-                DischargeCutoffSocLimit(inverter, self.payload_int()?)
+                DischargeCutoffSocLimit(inverter, self.payload_percent()?)
             }
 
             [..] => bail!("unhandled: {:?}", self),
         };
 
+        if let ReadInput(_, register, count) | ReadHold(_, register, count) = &r {
+            if *count == 0 || *count > 127 || *register as u32 + *count as u32 > 65536 {
+                bail!("invalid register read range");
+            }
+        }
         Ok(r)
     }
 
@@ -297,7 +304,7 @@ impl Message {
 
         // bail if the topic is too short to handle.
         // this *shouldn't* happen as our subscribe is for lxp/cmd/{datalog}/#
-        if parts.len() < 2 {
+        if parts.len() < 3 || parts[0] != "cmd" {
             bail!("ignoring badly formed MQTT topic: {}", self.topic);
         }
 
@@ -330,16 +337,22 @@ impl Message {
         if start.len() != 2 || end.len() != 2 {
             bail!("badly formatted time, use HH:MM")
         }
-        Ok([
-            start[0].parse()?,
-            start[1].parse()?,
-            end[0].parse()?,
-            end[1].parse()?,
-        ])
+        let values = [
+            start[0].parse()?, start[1].parse()?,
+            end[0].parse()?, end[1].parse()?,
+        ];
+        if values[0] > 23 || values[2] > 23 || values[1] > 59 || values[3] > 59 {
+            bail!("time out of range, use HH:MM");
+        }
+        Ok(values)
     }
 
     fn payload_int_or_1(&self) -> Result<u16> {
-        self.payload_int().or(Ok(1))
+        if self.payload.is_empty() {
+            Ok(1)
+        } else {
+            self.payload_int()
+        }
     }
 
     fn payload_int(&self) -> Result<u16> {
@@ -348,17 +361,29 @@ impl Message {
             .map_err(|err| anyhow!("payload_int: {}", err))
     }
 
-    fn payload_float(&self) -> Result<f64> {
-        self.payload
-            .parse()
-            .map_err(|err| anyhow!("payload_float: {}", err))
+    fn payload_percent(&self) -> Result<u16> {
+        let value = self.payload_int()?;
+        if value > 100 {
+            bail!("percentage must be between 0 and 100");
+        }
+        Ok(value)
     }
 
-    fn payload_bool(&self) -> bool {
-        matches!(
-            self.payload.to_ascii_lowercase().as_str(),
-            "1" | "t" | "true" | "on" | "y" | "yes"
-        )
+    fn payload_float(&self) -> Result<f64> {
+        let value: f64 = self.payload.parse()
+            .map_err(|err| anyhow!("payload_float: {}", err))?;
+        if !value.is_finite() {
+            bail!("value must be finite");
+        }
+        Ok(value)
+    }
+
+    fn payload_bool(&self) -> Result<bool> {
+        match self.payload.to_ascii_lowercase().as_str() {
+            "1" | "t" | "true" | "on" | "y" | "yes" => Ok(true),
+            "0" | "f" | "false" | "off" | "n" | "no" => Ok(false),
+            _ => bail!("invalid boolean payload"),
+        }
     }
 } // }}}
 
@@ -414,12 +439,30 @@ impl Mqtt {
             c.mqtt().port()
         );
 
+        for inverter in c.inverters().iter() {
+            self.channels.inverter_status.register(inverter);
+        }
+
         let (client, eventloop) = AsyncClient::new(options, 10);
 
+        let (connected, mut connections) = tokio::sync::mpsc::channel(1);
+        let (ready, status_ready) = tokio::sync::watch::channel(false);
+        let setup = async {
+            while connections.recv().await.is_some() {
+                // Reannounce online status, subscriptions, and discovery on every CONNACK.
+                // Run beside poll(), since publishing discovery can fill the client queue.
+                self.setup(client.clone()).await?;
+                // A single publisher serializes status updates and replays the
+                // latest in-memory state after discovery on each broker connection.
+                let _ = ready.send(true);
+            }
+            Ok::<(), anyhow::Error>(())
+        };
         futures::try_join!(
-            self.setup(client.clone()),
-            self.receiver(eventloop),
-            self.sender(client)
+            setup,
+            self.receiver(eventloop, connected),
+            self.sender(client.clone()),
+            self.status_sender(client.clone(), status_ready)
         )?;
 
         Ok(())
@@ -432,10 +475,6 @@ impl Mqtt {
     }
 
     async fn setup(&self, client: AsyncClient) -> Result<()> {
-        client
-            .publish(self.lwt_topic(), QoS::AtLeastOnce, true, "online")
-            .await?;
-
         client
             .subscribe(
                 format!("{}/cmd/all/#", self.config.mqtt().namespace()),
@@ -465,43 +504,79 @@ impl Mqtt {
             }
         }
 
+        if self.config.mqtt().homeassistant().enabled() {
+            for inverter in self.config.inverters().iter().filter(|inverter| !inverter.enabled()) {
+                let message = home_assistant::Config::new(inverter, &self.config.mqtt()).connection_status()?;
+                client.publish(message.topic, QoS::AtLeastOnce, true, message.payload).await?;
+            }
+        }
+
         Ok(())
     }
 
+    async fn status_sender(&self, client: AsyncClient, mut ready: tokio::sync::watch::Receiver<bool>) -> Result<()> {
+        let mut statuses = self.channels.inverter_status.subscribe();
+        let mut published = lxp::status::Snapshot::new();
+        loop {
+            let replay = tokio::select! {
+                result = ready.changed() => { result?; true },
+                result = statuses.changed() => { result?; false },
+            };
+            if !*ready.borrow() { continue; }
+            let current = statuses.borrow_and_update().clone();
+            for (datalog, status) in &current {
+                if replay || published.get(datalog) != Some(status) {
+                    let topic = format!("{}/{}/status", self.config.mqtt().namespace(), datalog);
+                    client.publish(topic, QoS::AtLeastOnce, true, serde_json::to_vec(status)?).await?;
+                }
+            }
+            // Publish the current status before marking the bridge online, so a
+            // fresh process replaces retained statuses from its predecessor.
+            if replay {
+                client.publish(self.lwt_topic(), QoS::AtLeastOnce, true, "online").await?;
+            }
+            published = current;
+        }
+    }
+
     // mqtt -> coordinator
-    async fn receiver(&self, mut eventloop: EventLoop) -> Result<()> {
+    async fn receiver(
+        &self,
+        mut eventloop: EventLoop,
+        connected: tokio::sync::mpsc::Sender<()>,
+    ) -> Result<()> {
         loop {
             if self.shutdown {
                 break;
             }
-
-            if let Ok(event) =
-                tokio::time::timeout(std::time::Duration::from_secs(1), eventloop.poll()).await
-            {
-                match event {
-                    Ok(Event::Incoming(Incoming::Publish(publish))) => {
-                        self.handle_message(publish)?;
-                    }
-                    Err(e) => {
-                        // should automatically reconnect on next poll()..
-                        error!("{}", e);
-                        info!("reconnecting in 5s");
-                        tokio::time::sleep(std::time::Duration::from_secs(5)).await;
-                    }
-                    _ => {} // keepalives etc
+            match eventloop.poll().await {
+                Ok(Event::Incoming(Incoming::ConnAck(_))) => {
+                    let _ = connected.try_send(());
                 }
+                Ok(Event::Incoming(Incoming::Publish(publish))) => {
+                    if let Err(error) = self.handle_message(publish) {
+                        warn!("ignoring invalid MQTT message: {}", error);
+                    }
+                }
+                Err(error) => {
+                    error!("MQTT: {} - reconnecting in 5s", error);
+                    tokio::time::sleep(std::time::Duration::from_secs(5)).await;
+                }
+                _ => {}
             }
         }
-
-        info!("receiver loop exiting");
-
         Ok(())
     }
 
     fn handle_message(&self, publish: Publish) -> Result<()> {
         // remove the namespace, including the first /
         // doing it this way means we don't break if namespace happens to contain a /
-        let topic = publish.topic[self.config.mqtt().namespace().len() + 1..].to_owned();
+        let prefix = format!("{}/", self.config.mqtt().namespace());
+        let topic = publish
+            .topic
+            .strip_prefix(&prefix)
+            .ok_or_else(|| anyhow!("topic outside configured namespace"))?
+            .to_owned();
 
         let message = Message {
             topic,
@@ -528,7 +603,7 @@ impl Mqtt {
         let mut receiver = self.channels.to_mqtt.subscribe();
 
         loop {
-            match receiver.recv().await? {
+            match Channels::recv(&mut receiver).await? {
                 Shutdown => break,
                 Message(message) => {
                     let topic = format!("{}/{}", self.config.mqtt().namespace(), message.topic);

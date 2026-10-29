@@ -118,3 +118,31 @@ async fn time_already_correct() {
 
     futures::try_join!(tf, sf).unwrap();
 }
+
+#[tokio::test]
+async fn invalid_or_short_date_reply_returns_error() {
+    for values in [vec![0, 0], vec![26, 0, 0, 25, 61, 61]] {
+        let inverter = Factory::inverter();
+        let channels = Channels::new();
+        let sync =
+            coordinator::commands::timesync::TimeSync::new(channels.clone(), inverter.clone());
+        let mut outgoing = channels.to_inverter.subscribe();
+        let responder = async {
+            let _ = outgoing.recv().await.unwrap();
+            channels
+                .from_inverter
+                .send(lxp::inverter::ChannelData::Packet(Packet::TranslatedData(
+                    lxp::packet::TranslatedData {
+                        datalog: inverter.datalog(),
+                        inverter: inverter.serial(),
+                        register: 12,
+                        device_function: lxp::packet::DeviceFunction::ReadHold,
+                        values,
+                    },
+                )))
+                .unwrap();
+        };
+        let (result, ()) = tokio::join!(sync.run(), responder);
+        assert!(result.unwrap_err().to_string().starts_with("invalid "));
+    }
+}

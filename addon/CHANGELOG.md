@@ -1,3 +1,12 @@
+# v0.14.2-eg4-18kpv
+
+- Isolate inverter initialization and command processing so an unreachable inverter cannot stall healthy peers.
+- Recover telemetry consumers after queue overflow; keep time-sync failures local to the affected inverter.
+- Bound network waits, retry database startup, and restore MQTT subscriptions and discovery after reconnects.
+- Validate malformed replies, invalid inverter dates, and MQTT command payloads without panicking or applying defaults.
+- Add a retained Connection status diagnostic sensor per inverter, independent of register reads, including connection errors, attempts, timestamps, and initialization diagnostics.
+- Publish current status after MQTT reconnects and preserve existing inverter entity identities.
+
 # v0.14.1-eg4-18kpv
 
 - Correct the release sequence after the older 0.14.0 development binary.

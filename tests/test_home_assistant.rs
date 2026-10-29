@@ -120,3 +120,28 @@ async fn all_has_time_range_ac_charge_1() {
         payload: r#"{"name":"AC Charge Timeslot 1","state_topic":"lxp/2222222222/ac_charge/1","command_topic":"lxp/cmd/2222222222/set/ac_charge/1","command_template":"{% set parts = value.split(\"-\") %}{\"start\":\"{{ parts[0] }}\", \"end\":\"{{ parts[1] }}\"}","value_template":"{{ value_json[\"start\"] }}-{{ value_json[\"end\"] }}","unique_id":"lxp_2222222222_text_ac_charge/1","device":{"manufacturer":"LuxPower","name":"lxp_2222222222","identifiers":["lxp_2222222222"]},"availability":{"topic":"lxp/LWT"},"pattern":"([01]?[0-9]|2[0-3]):[0-5][0-9]-([01]?[0-9]|2[0-3]):[0-5][0-9]"}"#.to_string()
     }));
 }
+
+#[test]
+fn connection_status_is_separate_and_uses_bridge_availability() {
+    let config = Factory::example_config();
+    let ha = home_assistant::Config::new(&config.inverters[0], &config.mqtt);
+    let messages = ha.all().unwrap();
+    let message = messages.iter().find(|message| message.topic.ends_with("/connection_status/config")).unwrap();
+    assert!(message.retain);
+    let payload: serde_json::Value = serde_json::from_str(&message.payload).unwrap();
+    assert_eq!(payload["unique_id"], "lxp_2222222222_connection_status");
+    assert_eq!(payload["name"], "Connection status");
+    assert_eq!(payload["state_topic"], "lxp/2222222222/status");
+    assert_eq!(payload["json_attributes_topic"], payload["state_topic"]);
+    assert_eq!(payload["value_template"], "{{ value_json.state }}");
+    assert_eq!(payload["availability"]["topic"], "lxp/LWT");
+    assert_eq!(payload["device_class"], "enum");
+    assert_eq!(payload["options"], json!(["disabled", "disconnected", "connecting", "authenticating", "connected"]));
+    assert_eq!(payload["device"]["identifiers"], json!(["lxp_2222222222"]));
+    assert!(payload.get("expire_after").is_none());
+    // The existing inverter operating-mode sensor keeps its identity and topic.
+    let operating = messages.iter().find(|message| message.topic.ends_with("/status/config")).unwrap();
+    let operating: serde_json::Value = serde_json::from_str(&operating.payload).unwrap();
+    assert_eq!(operating["unique_id"], "lxp_2222222222_status");
+    assert_eq!(operating["state_topic"], "lxp/2222222222/input/status/parsed");
+}

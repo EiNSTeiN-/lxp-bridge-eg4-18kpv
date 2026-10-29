@@ -38,7 +38,19 @@ impl Database {
         // TODO: could log the url but would need to redact password
         info!("initializing database");
 
-        futures::try_join!(self.inserter())?;
+        // Subscribe before connecting/migrating so startup does not lose the consumer.
+        let mut receiver = self.channels.to_database.subscribe();
+        let mut shutdown = self.channels.to_database.subscribe();
+        self.database()?; // Invalid configuration is a startup error, not a network retry.
+        AnyConnectOptions::from_str(self.config.url())?;
+        tokio::select! {
+            result = self.inserter(&mut receiver) => result?,
+            _ = async {
+                while let Ok(data) = Channels::recv(&mut shutdown).await {
+                    if data == ChannelData::Shutdown { break; }
+                }
+            } => {},
+        }
 
         info!("database loop exiting");
 
@@ -71,13 +83,12 @@ impl Database {
     }
 
     pub async fn connection(&self) -> Result<sqlx::pool::PoolConnection<sqlx::Any>> {
-        let acquire = if let Some(pool) = &*self.pool.borrow() {
-            pool.acquire()
-        } else {
-            todo!()
-        };
-
-        Ok(acquire.await?)
+        let pool = self
+            .pool
+            .borrow()
+            .clone()
+            .ok_or_else(|| anyhow!("database not connected"))?;
+        Ok(pool.acquire().await?)
     }
 
     async fn migrate(&self) -> Result<()> {
@@ -97,14 +108,24 @@ impl Database {
         Ok(())
     }
 
-    async fn inserter(&self) -> Result<()> {
-        self.connect().await?;
-
-        info!("database connected");
-
-        self.migrate().await?;
-
-        let mut receiver = self.channels.to_database.subscribe();
+    async fn inserter(&self, receiver: &mut broadcast::Receiver<ChannelData>) -> Result<()> {
+        loop {
+            let result = tokio::time::timeout(std::time::Duration::from_secs(30), async {
+                self.connect().await?;
+                self.migrate().await
+            })
+            .await;
+            match result {
+                Ok(Ok(())) => break,
+                Ok(Err(error)) => error!(
+                    "database initialization failed: {} - retrying in 10s",
+                    error
+                ),
+                Err(_) => error!("database initialization timed out - retrying in 10s"),
+            }
+            tokio::time::sleep(std::time::Duration::from_secs(10)).await;
+        }
+        info!("database connected and migrated");
 
         let values = match self.database()? {
             DatabaseType::MySQL => Self::values_for_mysql(),
@@ -156,10 +177,17 @@ impl Database {
         loop {
             use ChannelData::*;
 
-            match receiver.recv().await? {
+            match Channels::recv(receiver).await? {
                 Shutdown => break,
                 ReadInputAll(data) => {
-                    while let Err(err) = self.insert(&query, &data).await {
+                    while let Err(err) = tokio::time::timeout(
+                        std::time::Duration::from_secs(30),
+                        self.insert(&query, &data),
+                    )
+                    .await
+                    .map_err(anyhow::Error::from)
+                    .and_then(|result| result)
+                    {
                         error!("INSERT failed: {:?} - retrying in 10s", err);
                         tokio::time::sleep(std::time::Duration::from_secs(10)).await;
                     }

@@ -407,3 +407,41 @@ async fn for_input_ignore_127_254() {
         mqtt::Message { topic: "2222222222/input/v_grid_l2/parsed".to_owned(), retain: false, payload: "0.0".to_owned() }
     ]);
 }
+
+#[test]
+fn rejects_malformed_commands_instead_of_sending_default_values() {
+    for (topic, payload) in [
+        ("cmd/all/set/ac_charge", "typo"),
+        ("cmd/all/set/hold/66", "NaN"),
+        ("cmd/all/set/ac_charge_rate_pct", "101"),
+        (
+            "cmd/all/set/ac_charge/1",
+            r#"{"start":"24:00","end":"12:60"}"#,
+        ),
+        ("cmd/all/read/hold/0", "typo"),
+        ("cmd/all/read/hold/0", "0"),
+        ("cmd/all/read/hold/65535", "2"),
+        ("other/all/set/ac_charge", "on"),
+    ] {
+        let message = mqtt::Message {
+            topic: topic.into(),
+            payload: payload.into(),
+            retain: false,
+        };
+        assert!(
+            message.to_command(Factory::inverter()).is_err(),
+            "accepted {}: {}",
+            topic,
+            payload
+        );
+    }
+    let message = mqtt::Message {
+        topic: "cmd/all/set/ac_charge".into(),
+        payload: "OFF".into(),
+        retain: false,
+    };
+    assert!(matches!(
+        message.to_command(Factory::inverter()).unwrap(),
+        Command::AcCharge(_, false)
+    ));
+}

@@ -23,55 +23,55 @@ pub trait WaitForReply {
     const TIMEOUT: u64 = 10;
 
     #[cfg(feature = "mocks")]
-    const TIMEOUT: u64 = 0; // fail immediately in tests
+    const TIMEOUT: u64 = 1; // fail quickly in tests
 
     async fn wait_for_reply(&mut self, packet: &Packet) -> Result<Packet>;
 }
 #[async_trait]
 impl WaitForReply for Receiver {
     async fn wait_for_reply(&mut self, packet: &Packet) -> Result<Packet> {
-        let start = std::time::Instant::now();
-
-        loop {
-            match (packet, self.try_recv()) {
-                (
-                    Packet::TranslatedData(td),
-                    Ok(ChannelData::Packet(Packet::TranslatedData(reply))),
-                ) => {
-                    if td.datalog == reply.datalog
-                        && td.register == reply.register
-                        && td.device_function == reply.device_function
-                    {
-                        return Ok(Packet::TranslatedData(reply));
+        tokio::time::timeout(std::time::Duration::from_secs(Self::TIMEOUT), async {
+            loop {
+                match (packet, self.recv().await) {
+                    (
+                        Packet::TranslatedData(td),
+                        Ok(ChannelData::Packet(Packet::TranslatedData(reply))),
+                    ) => {
+                        if td.datalog == reply.datalog
+                            && td.register == reply.register
+                            && td.device_function == reply.device_function
+                            && td.inverter == reply.inverter
+                        {
+                            return Ok(Packet::TranslatedData(reply));
+                        }
                     }
-                }
-                (Packet::ReadParam(rp), Ok(ChannelData::Packet(Packet::ReadParam(reply)))) => {
-                    if rp.datalog == reply.datalog && rp.register == reply.register {
-                        return Ok(Packet::ReadParam(reply));
+                    (Packet::ReadParam(rp), Ok(ChannelData::Packet(Packet::ReadParam(reply)))) => {
+                        if rp.datalog == reply.datalog && rp.register == reply.register {
+                            return Ok(Packet::ReadParam(reply));
+                        }
                     }
-                }
-                (Packet::WriteParam(wp), Ok(ChannelData::Packet(Packet::WriteParam(reply)))) => {
-                    if wp.datalog == reply.datalog && wp.register == reply.register {
-                        return Ok(Packet::WriteParam(reply));
+                    (
+                        Packet::WriteParam(wp),
+                        Ok(ChannelData::Packet(Packet::WriteParam(reply))),
+                    ) => {
+                        if wp.datalog == reply.datalog && wp.register == reply.register {
+                            return Ok(Packet::WriteParam(reply));
+                        }
                     }
-                }
-                (_, Ok(ChannelData::Packet(_))) => {} // TODO ReadParam and WriteParam
-                (_, Ok(ChannelData::Connected(_))) => {} // Breaks on channel overflow, but we have a timeout
-                (_, Ok(ChannelData::Disconnect(inverter_datalog))) => {
-                    if inverter_datalog == packet.datalog() {
-                        bail!("inverter disconnect?");
+                    (_, Ok(ChannelData::Packet(_))) => {} // TODO ReadParam and WriteParam
+                    (_, Ok(ChannelData::Connected(_))) => {} // Breaks on channel overflow, but we have a timeout
+                    (_, Ok(ChannelData::Disconnect(inverter_datalog))) => {
+                        if inverter_datalog == packet.datalog() {
+                            bail!("inverter {} disconnected", inverter_datalog);
+                        }
                     }
+                    (_, Ok(ChannelData::Shutdown)) => bail!("shutting down"),
+                    (_, Err(err)) => bail!("reply channel error: {:?}", err),
                 }
-                (_, Ok(ChannelData::Shutdown)) => bail!("shutting down"),
-                (_, Err(broadcast::error::TryRecvError::Empty)) => {} // ignore and loop
-                (_, Err(err)) => bail!("try_recv error: {:?}", err),
             }
-            if start.elapsed().as_secs() > Self::TIMEOUT {
-                bail!("wait_for_reply {:?} - timeout", packet);
-            }
-
-            tokio::time::sleep(std::time::Duration::from_millis(5)).await;
-        }
+        })
+        .await
+        .map_err(|_| anyhow!("wait_for_reply {:?} - timeout", packet))?
     }
 } // }}}
 
@@ -130,39 +130,67 @@ impl std::fmt::Debug for Serial {
 
 pub struct Inverter {
     config: ConfigWrapper,
-    host: String,
+    datalog: Serial,
     channels: Channels,
 }
 
 impl Inverter {
     pub fn new(config: ConfigWrapper, inverter: &config::Inverter, channels: Channels) -> Self {
         // remember which inverter this instance is for
-        let host = inverter.host().to_string();
+        let datalog = inverter.datalog();
+        channels.inverter_status.register(inverter);
 
         Self {
             config,
-            host,
+            datalog,
             channels,
         }
     }
 
     pub fn config(&self) -> config::Inverter {
         self.config
-            .inverter_with_host(&self.host)
+            .inverters()
+            .iter()
+            .find(|inverter| inverter.datalog() == self.datalog)
+            .cloned()
             .expect("can't find my inverter")
     }
 
     pub async fn start(&self) -> Result<()> {
-        while let Err(e) = self.connect().await {
+        // Listen throughout TCP connect, TLS negotiation, and reconnect backoff.
+        let mut shutdown = self.channels.to_inverter.subscribe();
+        let result = tokio::select! {
+            result = self.reconnect() => result,
+            _ = async {
+                while let Ok(data) = Channels::recv(&mut shutdown).await {
+                    if data == ChannelData::Shutdown { break; }
+                }
+            } => Ok(()),
+        };
+        self.channels
+            .inverter_status
+            .disconnected(self.datalog, None);
+        result
+    }
+
+    async fn reconnect(&self) -> Result<()> {
+        loop {
+            self.channels.inverter_status.connecting(self.datalog);
+            let e = match self.connect().await {
+                Ok(()) => return Ok(()),
+                Err(error) => error,
+            };
+            self.channels
+                .inverter_status
+                .disconnected(self.datalog, Some(format!("{:#}", e)));
             error!("inverter {}: {}", self.config().datalog(), e);
             info!("inverter {}: reconnecting in 5s", self.config().datalog());
-            self.channels
+            let _ = self
+                .channels
                 .from_inverter
-                .send(ChannelData::Disconnect(self.config().datalog()))?; // kill any waiting readers
+                .send(ChannelData::Disconnect(self.config().datalog())); // kill any waiting readers
             tokio::time::sleep(std::time::Duration::from_secs(5)).await;
         }
-
-        Ok(())
     }
 
     pub fn stop(&self) {
@@ -181,12 +209,18 @@ impl Inverter {
 
         let inverter_hp = (self.config().host().to_owned(), self.config().port());
 
-        let stream = tokio::net::TcpStream::connect(inverter_hp).await?;
+        let stream = tokio::time::timeout(
+            std::time::Duration::from_secs(10),
+            tokio::net::TcpStream::connect(inverter_hp),
+        )
+        .await
+        .map_err(|_| anyhow!("TCP connection timed out after 10 seconds"))??;
         let std_stream = stream.into_std()?;
         std_stream.set_keepalive(Some(std::time::Duration::new(60, 0)))?;
         let stream = tokio::net::TcpStream::from_std(std_stream)?;
 
         if self.config().tls() {
+            self.channels.inverter_status.authenticating(self.datalog);
             let stream = lxp::tls::connect(stream, self.config().datalog()).await?;
             self.run_connection(stream).await
         } else {
@@ -203,6 +237,7 @@ impl Inverter {
         let outgoing = self.channels.to_inverter.subscribe();
 
         info!("inverter {}: connected!", self.config().datalog());
+        self.channels.inverter_status.connected(self.datalog);
         self.channels
             .from_inverter
             .send(ChannelData::Connected(self.config().datalog()))?;
@@ -228,7 +263,7 @@ impl Inverter {
             let future = socket.read_buf(&mut buf);
             let read_timeout = self.config().read_timeout();
             let len = if read_timeout > 0 {
-                match timeout(Duration::from_millis(read_timeout * 1000), future).await {
+                match timeout(Duration::from_secs(read_timeout), future).await {
                     Ok(r) => r,
                     Err(_) => bail!("no data for {} seconds", read_timeout),
                 }
@@ -258,6 +293,11 @@ impl Inverter {
     }
 
     fn handle_incoming_packet(&self, packet: Packet) -> Result<()> {
+        let is_input = matches!(&packet, Packet::TranslatedData(td)
+            if td.device_function == lxp::packet::DeviceFunction::ReadInput);
+        self.channels
+            .inverter_status
+            .packet_received(self.datalog, is_input);
         // bytes received are logged in packet_decoder, no need here
         //debug!("inverter {}: RX {:?}", self.config.datalog, packet);
 
@@ -289,7 +329,11 @@ impl Inverter {
                 Shutdown => break,
                 // this doesn't actually happen yet; (Dis)connect is never sent to this channel
                 Connected(_) => {}
-                Disconnect(_) => bail!("sender exiting due to ChannelData::Disconnect"),
+                Disconnect(serial) => {
+                    if serial == self.config().datalog() {
+                        bail!("sender exiting due to ChannelData::Disconnect");
+                    }
+                }
                 Packet(packet) => {
                     // this works, but needs more thought. because we only fix it here, immediately
                     // before transmission, calls to wait_for_reply with the original serials will
@@ -300,7 +344,12 @@ impl Inverter {
                         //debug!("inverter {}: TX {:?}", self.config.datalog, packet);
                         let bytes = lxp::packet::TcpFrameFactory::build(&packet);
                         debug!("inverter {}: TX {:?}", self.config().datalog(), bytes);
-                        socket.write_all(&bytes).await?
+                        tokio::time::timeout(
+                            std::time::Duration::from_secs(10),
+                            socket.write_all(&bytes),
+                        )
+                        .await
+                        .map_err(|_| anyhow!("socket write timed out after 10 seconds"))??;
                     }
                 }
             }

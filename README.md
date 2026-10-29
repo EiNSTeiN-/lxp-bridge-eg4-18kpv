@@ -50,6 +50,39 @@ them.
 
 ## Documentation
 
+### Connection diagnostics
+
+Each configured inverter has a **Connection status** diagnostic sensor under its
+existing Home Assistant MQTT device. It is separate from the inverter's existing
+**Status** sensor, which reports operating modes such as Standby or PV On-grid.
+The connection sensor is available whenever the bridge is online through MQTT;
+it does not require an inverter connection or successful register reads.
+
+States are `disconnected` (including the retry delay), `connecting` (TCP/DNS),
+`authenticating` (TLS-PSK), `connected` (transport established), and `disabled`
+(the inverter entry is disabled). `connected` does not imply fresh telemetry or
+successful holding-register initialization.
+
+The retained JSON topic is `<namespace>/<datalog>/status`. Attributes include
+`state_since`, `connection_attempts`, `last_error`, `last_connected_at`,
+`last_disconnected_at`, `last_packet_received_at`, `last_input_received_at`,
+`initialization`, and `initialization_error`. Initialization can be `not_requested`,
+`pending`, `reading`, `ready`, or `failed`; a failed read leaves the connection
+state `connected` until the transport actually disconnects. The connection error
+clears when a connection succeeds; initialization errors clear when a new attempt
+starts. Attempt counts start over when the bridge restarts.
+
+Status uses an independent in-memory snapshot, so telemetry queue overflow does
+not discard the current connection state. Discovery and the latest status are
+replayed on each MQTT broker connection, including for unreachable or disabled
+inverters. Connection changes publish immediately. Packet timestamps are kept
+current in memory and reported about once a minute, plus the first packet/input
+and lifecycle changes, to limit Home Assistant history writes. If MQTT or the
+bridge is offline, Home Assistant marks the sensor unavailable via the bridge's
+existing availability topic. This requires MQTT and Home Assistant discovery to
+be enabled for automatic sensor creation; the JSON status topic is also published
+when discovery is disabled.
+
 ### Encrypted EG4 dongles
 
 For dongles listed as **E Wi-Fi ENC**, set `tls: true` on that inverter entry.

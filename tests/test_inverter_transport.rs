@@ -120,6 +120,9 @@ async fn roundtrip(tls: bool) {
                 .unwrap(),
             lxp::inverter::ChannelData::Connected(entry.datalog())
         );
+        let status = channels.inverter_status.snapshot()[&entry.datalog()].clone();
+        assert_eq!(status.state, lxp::status::ConnectionState::Connected);
+        assert!(status.last_packet_received_at.is_none());
         // Send immediately after Connected, exercising subscription ordering.
         channels
             .to_inverter
@@ -205,4 +208,159 @@ async fn incorrect_dongle_serial_rejects_tls_without_connected_event() {
         result = inverter.start() => panic!("unexpected termination: {:?}", result),
         _ = assertions => {}
     }
+}
+
+#[tokio::test]
+async fn stalled_tls_handshake_does_not_block_plain_inverter_on_same_host() {
+    let stalled_listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let healthy_listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let mut healthy = Factory::inverter();
+    healthy.host = "127.0.0.1".into();
+    healthy.port = healthy_listener.local_addr().unwrap().port();
+    let mut stalled = healthy.clone();
+    stalled.port = stalled_listener.local_addr().unwrap().port();
+    stalled.datalog = "9999999999".parse().unwrap();
+    stalled.tls = Some(true);
+    let config = Factory::example_config_wrapped();
+    config.set_inverters(vec![stalled.clone(), healthy.clone()]);
+    let channels = Channels::new();
+    let mut incoming = channels.from_inverter.subscribe();
+    let slow = Inverter::new(config.clone(), &stalled, channels.clone());
+    let fast = Inverter::new(config, &healthy, channels.clone());
+    let (tls_started, tls_seen) = tokio::sync::oneshot::channel();
+    let servers = async {
+        let stalled_server = async {
+            let (mut stream, _) = stalled_listener.accept().await.unwrap();
+            // Accept TCP but never answer the TLS ClientHello.
+            let mut data = [0; 4096];
+            assert!(stream.read(&mut data).await.unwrap() > 0);
+            tls_started.send(()).unwrap();
+            while let Ok(count) = stream.read(&mut data).await {
+                if count == 0 {
+                    break;
+                }
+            }
+        };
+        let healthy_server = async {
+            let (mut stream, _) = healthy_listener.accept().await.unwrap();
+            stream.write_all(&holding_response()).await.unwrap();
+            let _ = stream.read(&mut [0]).await;
+        };
+        tokio::join!(stalled_server, healthy_server);
+    };
+    let assertions = async {
+        tls_seen.await.unwrap();
+        assert_eq!(
+            channels.inverter_status.snapshot()[&stalled.datalog()].state,
+            lxp::status::ConnectionState::Authenticating
+        );
+        loop {
+            match incoming.recv().await.unwrap() {
+                lxp::inverter::ChannelData::Packet(Packet::TranslatedData(td)) => {
+                    assert_eq!(td.datalog, healthy.datalog());
+                    assert_eq!(td.values.len(), 160);
+                    break;
+                }
+                lxp::inverter::ChannelData::Connected(serial) => {
+                    assert_eq!(serial, healthy.datalog())
+                }
+                other => panic!("unexpected event: {:?}", other),
+            }
+        }
+        fast.stop();
+    };
+    timeout_all(async {
+        let (slow_result, fast_result, (), ()) =
+            tokio::join!(slow.start(), fast.start(), servers, assertions);
+        slow_result.unwrap();
+        fast_result.unwrap();
+    })
+    .await;
+}
+
+async fn timeout_all(future: impl std::future::Future<Output = ()>) {
+    tokio::time::timeout(Duration::from_secs(1), future)
+        .await
+        .unwrap();
+}
+
+#[tokio::test]
+async fn malformed_connection_recovers_while_healthy_inverter_keeps_streaming() {
+    let broken_listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let healthy_listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let mut healthy = Factory::inverter();
+    healthy.host = "127.0.0.1".into();
+    healthy.port = healthy_listener.local_addr().unwrap().port();
+    let mut broken = healthy.clone();
+    broken.port = broken_listener.local_addr().unwrap().port();
+    broken.datalog = "9999999999".parse().unwrap();
+    let config = Factory::example_config_wrapped();
+    config.set_inverters(vec![broken.clone(), healthy.clone()]);
+    let channels = Channels::new();
+    let mut incoming = channels.from_inverter.subscribe();
+    let slow = Inverter::new(config.clone(), &broken, channels.clone());
+    let fast = Inverter::new(config, &healthy, channels.clone());
+    let servers = async {
+        let broken_server = async {
+            let (mut stream, _) = broken_listener.accept().await.unwrap();
+            stream.write_all(&[0; 6]).await.unwrap(); // Invalid protocol header.
+            drop(stream);
+            let (mut stream, _) = broken_listener.accept().await.unwrap();
+            let mut reply = holding_response();
+            reply[8..18].copy_from_slice(b"9999999999");
+            stream.write_all(&reply).await.unwrap();
+            let _ = stream.read(&mut [0]).await;
+        };
+        let healthy_server = async {
+            let (mut stream, _) = healthy_listener.accept().await.unwrap();
+            let mut byte = [0];
+            loop {
+                tokio::select! {
+                    _ = stream.read(&mut byte) => break,
+                    _ = tokio::time::sleep(Duration::from_millis(50)) => {
+                        stream.write_all(&holding_response()).await.unwrap();
+                    }
+                }
+            }
+        };
+        tokio::join!(broken_server, healthy_server);
+    };
+    let assertions = async {
+        let mut disconnected = false;
+        let mut healthy_updates = 0;
+        loop {
+            match incoming.recv().await.unwrap() {
+                lxp::inverter::ChannelData::Disconnect(serial) if serial == broken.datalog() => {
+                    disconnected = true
+                }
+                lxp::inverter::ChannelData::Packet(Packet::TranslatedData(td)) => {
+                    if td.datalog == healthy.datalog() && disconnected {
+                        healthy_updates += 1;
+                    }
+                    if td.datalog == broken.datalog() {
+                        break;
+                    }
+                }
+                _ => {}
+            }
+        }
+        assert!(disconnected);
+        assert!(healthy_updates >= 5);
+        let snapshot = channels.inverter_status.snapshot();
+        let status = &snapshot[&broken.datalog()];
+        assert_eq!(status.state, lxp::status::ConnectionState::Connected);
+        assert_eq!(status.connection_attempts, 2);
+        assert!(status.last_error.is_none());
+        assert!(status.last_disconnected_at.is_some());
+        assert!(status.last_packet_received_at.is_some());
+        fast.stop();
+    };
+    tokio::time::timeout(Duration::from_secs(8), async {
+        let (slow_result, fast_result, (), ()) =
+            tokio::join!(slow.start(), fast.start(), servers, assertions);
+        slow_result.unwrap();
+        fast_result.unwrap();
+    })
+    .await
+    .unwrap();
 }

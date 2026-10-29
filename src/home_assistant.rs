@@ -1114,6 +1114,7 @@ impl Config {
 
     pub fn all(&self) -> Result<Vec<mqtt::Message>> {
         let mut r = vec![
+            self.connection_status()?,
             self.switch("ac_charge", "AC Charge")?,
             self.switch("charge_priority", "Charge Priority")?,
             self.switch("forced_discharge", "Forced Discharge")?,
@@ -1171,6 +1172,30 @@ impl Config {
             // has semantic meaning in MQTT, so must be changed
             name.replace('/', "_"),
         )
+    }
+
+    pub fn connection_status(&self) -> Result<mqtt::Message> {
+        let topic = format!("{}/{}/status", self.mqtt_config.namespace(), self.inverter.datalog());
+        let config = serde_json::json!({
+            "unique_id": self.unique_id("connection_status"),
+            "name": "Connection status",
+            "device_class": "enum",
+            "entity_category": "diagnostic",
+            "icon": "mdi:lan-connect",
+            "options": ["disabled", "disconnected", "connecting", "authenticating", "connected"],
+            "state_topic": topic,
+            "value_template": "{{ value_json.state }}",
+            "json_attributes_topic": topic,
+            "device": self.device(),
+            // This describes the bridge's view of the inverter, even while the
+            // inverter is offline. Only bridge availability gates this sensor.
+            "availability": self.availability(),
+        });
+        Ok(mqtt::Message {
+            topic: self.ha_discovery_topic("sensor", "connection_status"),
+            retain: true,
+            payload: serde_json::to_string(&config)?,
+        })
     }
 
     fn switch(&self, name: &str, label: &str) -> Result<mqtt::Message> {

@@ -76,7 +76,7 @@ pub async fn app() -> Result<()> {
 async fn start_databases(databases: Vec<Database>) -> Result<()> {
     let futures = databases.iter().map(|d| d.start());
 
-    futures::future::join_all(futures).await;
+    futures::future::try_join_all(futures).await?;
 
     Ok(())
 }
@@ -84,7 +84,7 @@ async fn start_databases(databases: Vec<Database>) -> Result<()> {
 async fn start_inverters(inverters: Vec<Inverter>) -> Result<()> {
     let futures = inverters.iter().map(|i| i.start());
 
-    futures::future::join_all(futures).await;
+    futures::future::try_join_all(futures).await?;
 
     Ok(())
 }

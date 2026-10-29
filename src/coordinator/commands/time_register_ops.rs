@@ -90,6 +90,9 @@ impl ReadTimeRegister {
         let reply = receiver.wait_for_reply(&packet).await?;
 
         if let Packet::TranslatedData(td) = reply {
+            if td.values.len() < 4 {
+                bail!("invalid time register reply length: {}", td.values.len());
+            }
             let payload = MqttReplyPayload {
                 start: format!("{:02}:{:02}", td.values[0], td.values[1]),
                 end: format!("{:02}:{:02}", td.values[2], td.values[3]),

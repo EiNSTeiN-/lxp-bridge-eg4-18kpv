@@ -42,7 +42,16 @@ impl Influx {
             Client::new(url, credentials)?
         };
 
-        futures::try_join!(self.sender(client))?;
+        let mut receiver = self.channels.to_influx.subscribe();
+        let mut shutdown = self.channels.to_influx.subscribe();
+        tokio::select! {
+            result = self.sender(client, &mut receiver) => result?,
+            _ = async {
+                while let Ok(data) = Channels::recv(&mut shutdown).await {
+                    if data == ChannelData::Shutdown { break; }
+                }
+            } => {},
+        }
 
         info!("influx loop exiting");
 
@@ -53,57 +62,65 @@ impl Influx {
         let _ = self.channels.to_influx.send(ChannelData::Shutdown);
     }
 
-    async fn sender(&self, client: Client) -> Result<()> {
-        use ChannelData::*;
-
-        let mut receiver = self.channels.to_influx.subscribe();
-
+    async fn sender(
+        &self,
+        client: Client,
+        receiver: &mut broadcast::Receiver<ChannelData>,
+    ) -> Result<()> {
         loop {
-            let mut line = LineBuilder::new(INPUTS_MEASUREMENT);
-
-            match receiver.recv().await? {
-                Shutdown => break,
-                InputData(data) => {
-                    for (key, value) in data.as_object().unwrap() {
-                        let key = key.to_string();
-
-                        line = if key == "time" {
-                            let value = value.as_i64().unwrap_or_else(|| {
-                                panic!("cannot represent {value} as i64 for {key}")
-                            });
-                            line.set_timestamp(chrono::Utc.timestamp_opt(value, 0).unwrap())
-                        } else if key == "datalog" {
-                            let value = value.as_str().unwrap_or_else(|| {
-                                panic!("cannot represent {value} as str for {key}")
-                            });
-                            line.insert_tag(key, value)
-                        } else if value.is_f64() {
-                            let value = value.as_f64().unwrap_or_else(|| {
-                                panic!("cannot represent {value} as f64 for {key}")
-                            });
-                            line.insert_field(key, value)
-                        } else {
-                            // can't be anything other than int
-                            let value = value.as_i64().unwrap_or_else(|| {
-                                panic!("cannot represent {value} as i64 for {key}")
-                            });
-                            line.insert_field(key, value)
-                        }
-                    }
-
-                    let lines = vec![line.build()];
-
-                    while let Err(err) = client.send(&self.database(), &lines).await {
-                        error!("push failed: {:?} - retrying in 10s", err);
-                        tokio::time::sleep(std::time::Duration::from_secs(10)).await;
+            match Channels::recv(receiver).await? {
+                ChannelData::Shutdown => break,
+                ChannelData::InputData(data) => {
+                    if let Err(error) = self.send_data(&client, data).await {
+                        warn!("skipping invalid InfluxDB sample: {}", error);
                     }
                 }
             }
         }
-
-        info!("sender loop exiting");
-
         Ok(())
+    }
+
+    async fn send_data(&self, client: &Client, data: serde_json::Value) -> Result<()> {
+        let mut line = LineBuilder::new(INPUTS_MEASUREMENT);
+        for (key, value) in data
+            .as_object()
+            .ok_or_else(|| anyhow!("expected an input object"))?
+        {
+            let key = key.to_string();
+            line = if key == "time" {
+                let value = value.as_i64().ok_or_else(|| anyhow!("invalid timestamp"))?;
+                let time = chrono::Utc
+                    .timestamp_opt(value, 0)
+                    .single()
+                    .ok_or_else(|| anyhow!("timestamp out of range"))?;
+                line.set_timestamp(time)
+            } else if key == "datalog" {
+                line.insert_tag(
+                    key,
+                    value.as_str().ok_or_else(|| anyhow!("invalid datalog"))?,
+                )
+            } else if let Some(value) = value.as_i64() {
+                line.insert_field(key, value)
+            } else if let Some(value) = value.as_f64() {
+                line.insert_field(key, value)
+            } else {
+                bail!("non-numeric input field {}", key);
+            };
+        }
+        let lines = vec![line.build()];
+        loop {
+            match tokio::time::timeout(
+                std::time::Duration::from_secs(30),
+                client.send(&self.database(), &lines),
+            )
+            .await
+            {
+                Ok(Ok(_)) => return Ok(()),
+                Ok(Err(error)) => error!("InfluxDB push failed: {:?} - retrying in 10s", error),
+                Err(_) => error!("InfluxDB push timed out - retrying in 10s"),
+            }
+            tokio::time::sleep(std::time::Duration::from_secs(10)).await;
+        }
     }
 
     fn database(&self) -> String {

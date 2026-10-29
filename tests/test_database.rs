@@ -35,19 +35,24 @@ async fn sqlite_insertion() {
     let tf = async {
         let channel_data = database::ChannelData::ReadInputAll(Box::new(Factory::read_input_all()));
 
-        let mut retries = 0;
-        // wait up to 5 seconds for database to be ready and accepting messages
-        while channels.to_database.send(channel_data.clone()).is_err() {
-            tokio::time::sleep(std::time::Duration::from_millis(100)).await;
-            retries = retries + 1;
-            if retries > 50 {
-                panic!("database not ready for messages");
+        // Consumers subscribe before initialization; queue acceptance does not mean
+        // the pool and migrations are ready. Wait for the actual table instead.
+        let mut conn = tokio::time::timeout(std::time::Duration::from_secs(5), async {
+            loop {
+                if let Ok(mut conn) = database.connection().await {
+                    if sqlx::query("SELECT * FROM inputs")
+                        .fetch_optional(&mut conn)
+                        .await
+                        .is_ok()
+                    {
+                        break conn;
+                    }
+                }
+                tokio::time::sleep(std::time::Duration::from_millis(10)).await;
             }
-        }
-
-        database.stop();
-
-        let mut conn = database.connection().await?;
+        })
+        .await?;
+        channels.to_database.send(channel_data)?;
 
         let mut retries = 0;
         loop {
@@ -79,8 +84,57 @@ async fn sqlite_insertion() {
             }
         }
 
+        database.stop();
         Ok::<(), anyhow::Error>(())
     };
 
     futures::try_join!(database.start(), tf).unwrap();
+}
+
+#[tokio::test]
+async fn recovers_when_database_is_unavailable_at_startup() {
+    common_setup();
+    let directory =
+        std::env::temp_dir().join(format!("lxp-database-recovery-{}", std::process::id()));
+    assert!(!directory.exists());
+    let config = config::Database {
+        enabled: true,
+        url: format!(
+            "sqlite://{}?mode=rwc",
+            directory.join("inputs.db").display()
+        ),
+    };
+    let channels = Channels::new();
+    let database = Database::new(config, channels.clone());
+    let assertions = async {
+        // The first connection fails because the directory does not exist.
+        tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+        std::fs::create_dir(&directory).unwrap();
+        channels
+            .to_database
+            .send(database::ChannelData::ReadInputAll(Box::new(
+                Factory::read_input_all(),
+            )))
+            .unwrap();
+        tokio::time::timeout(std::time::Duration::from_secs(25), async {
+            loop {
+                if let Ok(mut conn) = database.connection().await {
+                    if let Ok(Some(_)) = sqlx::query("SELECT * FROM inputs")
+                        .fetch_optional(&mut conn)
+                        .await
+                    {
+                        break;
+                    }
+                }
+                tokio::time::sleep(std::time::Duration::from_millis(20)).await;
+            }
+        })
+        .await
+        .unwrap();
+        database.stop();
+    };
+    let (result, ()) = tokio::join!(database.start(), assertions);
+    result.unwrap();
+    drop(database);
+    std::fs::remove_dir_all(directory).unwrap();
 }

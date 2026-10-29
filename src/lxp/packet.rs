@@ -1682,9 +1682,12 @@ pub struct TranslatedData {
 impl TranslatedData {
     pub fn pairs(&self) -> Vec<(u16, u16)> {
         self.values
-            .chunks(2)
+            .chunks_exact(2)
             .enumerate()
-            .map(|(pos, value)| (self.register + pos as u16, Utils::u16ify(value, 0)))
+            .filter_map(|(pos, value)| {
+                self.register.checked_add(pos as u16)
+                    .map(|register| (register, Utils::u16ify(value, 0)))
+            })
             .collect()
     }
 
@@ -1704,7 +1707,9 @@ impl TranslatedData {
     fn read_input_all(&self) -> Result<ReadInputAll> {
         match ReadInputAll::parse(&self.values) {
             Ok((_, mut r)) => {
-                r.p_pv = r.p_pv_1 + r.p_pv_2 + r.p_pv_3;
+                r.p_pv = r.p_pv_1.checked_add(r.p_pv_2)
+                    .and_then(|value| value.checked_add(r.p_pv_3))
+                    .ok_or_else(|| anyhow!("PV total exceeds u16 range"))?;
                 r.p_grid = r.p_to_user as i32 - r.p_to_grid as i32;
                 r.p_battery = r.p_charge as i32 - r.p_discharge as i32;
                 r.e_pv_day = Utils::round(r.e_pv_day_1 + r.e_pv_day_2 + r.e_pv_day_3, 1);
@@ -1734,7 +1739,9 @@ impl TranslatedData {
     fn read_input1(&self) -> Result<ReadInput1> {
         match ReadInput1::parse(&self.values) {
             Ok((_, mut r)) => {
-                r.p_pv = r.p_pv_1 + r.p_pv_2 + r.p_pv_3;
+                r.p_pv = r.p_pv_1.checked_add(r.p_pv_2)
+                    .and_then(|value| value.checked_add(r.p_pv_3))
+                    .ok_or_else(|| anyhow!("PV total exceeds u16 range"))?;
                 r.p_grid = r.p_to_user as i32 - r.p_to_grid as i32;
                 r.p_battery = r.p_charge as i32 - r.p_discharge as i32;
                 r.e_pv_day = Utils::round(r.e_pv_day_1 + r.e_pv_day_2 + r.e_pv_day_3, 1);
@@ -1809,6 +1816,7 @@ impl TranslatedData {
             );
         }
 
+        validate_register_values(register, &values)?;
         Ok(Self {
             datalog,
             device_function,
@@ -1929,9 +1937,12 @@ pub struct ReadParam {
 impl ReadParam {
     pub fn pairs(&self) -> Vec<(u16, u16)> {
         self.values
-            .chunks(2)
+            .chunks_exact(2)
             .enumerate()
-            .map(|(pos, value)| (self.register + pos as u16, Utils::u16ify(value, 0)))
+            .filter_map(|(pos, value)| {
+                self.register.checked_add(pos as u16)
+                    .map(|register| (register, Utils::u16ify(value, 0)))
+            })
             .collect()
     }
 
@@ -1965,6 +1976,7 @@ impl ReadParam {
             );
         }
 
+        validate_register_values(register, &values)?;
         Ok(Self {
             datalog,
             register,
@@ -2025,9 +2037,12 @@ pub struct WriteParam {
 impl WriteParam {
     pub fn pairs(&self) -> Vec<(u16, u16)> {
         self.values
-            .chunks(2)
+            .chunks_exact(2)
             .enumerate()
-            .map(|(pos, value)| (self.register + pos as u16, Utils::u16ify(value, 0)))
+            .filter_map(|(pos, value)| {
+                self.register.checked_add(pos as u16)
+                    .map(|register| (register, Utils::u16ify(value, 0)))
+            })
             .collect()
     }
 
@@ -2061,6 +2076,7 @@ impl WriteParam {
             );
         }
 
+        validate_register_values(register, &values)?;
         Ok(Self {
             datalog,
             register,
@@ -2117,6 +2133,16 @@ impl PacketCommon for WriteParam {
     fn value(&self) -> u16 {
         Utils::u16ify(&self.values, 0)
     }
+}
+
+fn validate_register_values(register: u16, values: &[u8]) -> Result<()> {
+    if values.is_empty() || values.len() % 2 != 0 {
+        bail!("invalid register data length: {}", values.len());
+    }
+    if register as usize + values.len() / 2 > u16::MAX as usize + 1 {
+        bail!("register range overflow");
+    }
+    Ok(())
 }
 
 pub struct Parser;

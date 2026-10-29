@@ -2,6 +2,11 @@ use crate::prelude::*;
 
 pub mod commands;
 
+use futures::{
+    future::{AbortHandle, Abortable},
+    stream::FuturesUnordered,
+    FutureExt, StreamExt,
+};
 use lxp::packet::{DeviceFunction, TcpFunction};
 
 #[derive(Eq, PartialEq, Debug, Clone)]
@@ -38,44 +43,88 @@ impl Coordinator {
 
     async fn mqtt_receiver(&self) -> Result<()> {
         let mut receiver = self.channels.from_mqtt.subscribe();
-
-        loop {
-            match receiver.recv().await? {
-                mqtt::ChannelData::Shutdown => break,
-                mqtt::ChannelData::Message(message) => {
-                    let _ = self.process_message(message).await;
-                }
-            }
-        }
-
-        Ok(())
-    }
-
-    async fn process_message(&self, message: mqtt::Message) -> Result<()> {
-        for inverter in self.config.inverters_for_message(&message)? {
-            match message.to_command(inverter) {
-                Ok(command) => {
-                    debug!("parsed command {:?}", command);
-
-                    let topic_reply = command.to_result_topic();
-                    let result = self.process_command(command).await;
-
-                    let reply = mqtt::ChannelData::Message(mqtt::Message {
-                        topic: topic_reply,
-                        retain: false,
-                        payload: if result.is_ok() { "OK" } else { "FAIL" }.to_string(),
-                    });
-                    if self.channels.to_mqtt.send(reply).is_err() {
-                        bail!("send(to_mqtt) failed - channel closed?");
+        let mut queues = std::collections::HashMap::new();
+        let mut workers = Vec::new();
+        for inverter in self.config.enabled_inverters() {
+            let (sender, mut commands) = tokio::sync::mpsc::channel::<mqtt::Message>(64);
+            queues.insert(inverter.datalog(), sender);
+            workers.push(async move {
+                // Preserve command order and read/modify/write operations per inverter.
+                while let Some(message) = commands.recv().await {
+                    if let Err(error) = self
+                        .process_message_for_inverter(message, inverter.clone())
+                        .await
+                    {
+                        error!(
+                            "inverter {} command failed: {:#}",
+                            inverter.datalog(),
+                            error
+                        );
                     }
                 }
-                Err(err) => {
-                    error!("{:?}", err);
+            });
+        }
+        let dispatch = async {
+            loop {
+                match Channels::recv(&mut receiver).await? {
+                    mqtt::ChannelData::Shutdown => return Ok(()),
+                    mqtt::ChannelData::Message(message) => {
+                        let inverters = match self.config.inverters_for_message(&message) {
+                            Ok(inverters) => inverters,
+                            Err(error) => {
+                                warn!("invalid MQTT command: {}", error);
+                                continue;
+                            }
+                        };
+                        for inverter in inverters {
+                            if let Some(queue) = queues.get(&inverter.datalog()) {
+                                if queue.try_send(message.clone()).is_err() {
+                                    warn!(
+                                        "inverter {} command queue full; rejecting {}",
+                                        inverter.datalog(),
+                                        message.topic
+                                    );
+                                    if let Ok(command) = message.to_command(inverter) {
+                                        self.command_result(command.to_result_topic(), false);
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
             }
+        };
+        if workers.is_empty() {
+            return dispatch.await;
         }
+        tokio::select! {
+            result = dispatch => result,
+            _ = futures::future::join_all(workers) => bail!("MQTT command workers exited unexpectedly"),
+        }
+    }
 
-        Ok(())
+    fn command_result(&self, topic: String, success: bool) {
+        let reply = mqtt::ChannelData::Message(mqtt::Message {
+            topic,
+            retain: false,
+            payload: if success { "OK" } else { "FAIL" }.to_string(),
+        });
+        if self.channels.to_mqtt.send(reply).is_err() {
+            warn!("cannot publish command result: MQTT consumer unavailable");
+        }
+    }
+
+    async fn process_message_for_inverter(
+        &self,
+        message: mqtt::Message,
+        inverter: config::Inverter,
+    ) -> Result<()> {
+        let command = message.to_command(inverter)?;
+        debug!("parsed command {:?}", command);
+        let topic = command.to_result_topic();
+        let result = self.process_command(command).await;
+        self.command_result(topic, result.is_ok());
+        result
     }
 
     async fn process_command(&self, command: Command) -> Result<()> {
@@ -117,8 +166,11 @@ impl Coordinator {
                     scaled_value = scaled_value / config.unwrap().scale;
                 }
 
+                if !scaled_value.is_finite() || !(0.0..=u16::MAX as f64).contains(&scaled_value) {
+                    bail!("register {} value out of range", register);
+                }
                 self.set_hold(inverter, register, scaled_value as u16).await
-            },
+            }
             WriteParam(inverter, register, value) => {
                 self.write_param(inverter, register, value).await
             }
@@ -331,21 +383,69 @@ impl Coordinator {
         let mut receiver = self.channels.from_inverter.subscribe();
 
         let mut inputs_store = InputsStore::new();
+        let mut initializers = FuturesUnordered::new();
+        let mut pending = std::collections::HashMap::<Serial, AbortHandle>::new();
 
         loop {
-            match receiver.recv().await? {
-                Packet(packet) => {
-                    self.process_inverter_packet(packet, &mut inputs_store)
-                        .await?;
-                }
-                Connected(serial) => {
-                    if let Err(e) = self.inverter_connected(serial).await {
-                        error!("{}", e);
+            tokio::select! {
+                result = initializers.next(), if !initializers.is_empty() => {
+                    if let Some((serial, result)) = result {
+                        // An aborted old initializer must not remove its replacement.
+                        if let Ok(result) = result {
+                            pending.remove(&serial);
+                            if let Err(error) = result {
+                                warn!("inverter {} initialization failed: {:#}", serial, error);
+                            }
+                        }
                     }
                 }
-                // this loop holds no state so doesn't care about inverter disconnects
-                Disconnect(_) => {}
-                Shutdown => break,
+                data = receiver.recv() => match data {
+                    Ok(Packet(packet)) => {
+                        if let Err(error) = self.process_inverter_packet(packet, &mut inputs_store).await {
+                            error!("ignoring inverter packet: {:#}", error);
+                        }
+                    }
+                    Ok(Connected(serial)) => {
+                        inputs_store.remove(&serial);
+                        if let Some(handle) = pending.remove(&serial) { handle.abort(); }
+                        let (handle, registration) = AbortHandle::new_pair();
+                        pending.insert(serial, handle);
+                        initializers.push(async move {
+                            let initialize = async {
+                                use lxp::status::InitializationState;
+                                let statuses = &self.channels.inverter_status;
+                                let attempt = statuses.snapshot().get(&serial).map_or(0, |status| status.connection_attempts);
+                                statuses.initialization(serial, attempt, InitializationState::Reading, None);
+                                let result = self.inverter_connected(serial).await;
+                                let (state, error) = match &result {
+                                    Ok(()) => (InitializationState::Ready, None),
+                                    Err(error) => (InitializationState::Failed, Some(format!("{:#}", error))),
+                                };
+                                statuses.initialization(serial, attempt, state, error);
+                                result
+                            };
+                            (serial, Abortable::new(initialize, registration).await)
+                        }.boxed_local());
+                    }
+                    Ok(Disconnect(serial)) => {
+                        inputs_store.remove(&serial);
+                        if let Some(handle) = pending.remove(&serial) { handle.abort(); }
+                    }
+                    Ok(Shutdown) => break,
+                    Err(broadcast::error::RecvError::Lagged(count)) => {
+                        warn!("inverter queue overflow: skipped {} messages", count);
+                        // A skipped disconnect or input page invalidates partial state.
+                        inputs_store.clear();
+                        for (serial, handle) in pending.drain() {
+                            let statuses = &self.channels.inverter_status;
+                            let attempt = statuses.snapshot().get(&serial).map_or(0, |status| status.connection_attempts);
+                            statuses.initialization(serial, attempt, lxp::status::InitializationState::Failed,
+                                Some("initialization cancelled after packet queue overflow".to_string()));
+                            handle.abort();
+                        }
+                    }
+                    Err(broadcast::error::RecvError::Closed) => bail!("inverter channel closed"),
+                }
             }
         }
 
@@ -393,11 +493,11 @@ impl Coordinator {
                     Ok(ReadInput::ReadInput1(r1)) => {
                         info!("Saving ReadInput1");
                         entry.set_read_input_1(r1);
-                    },
+                    }
                     Ok(ReadInput::ReadInput2(r2)) => {
                         info!("Saving ReadInput2");
                         entry.set_read_input_2(r2);
-                    },
+                    }
                     Ok(ReadInput::ReadInput3(r3)) => {
                         let datalog = r3.datalog;
 
@@ -409,7 +509,7 @@ impl Coordinator {
                                 let message = mqtt::Message::for_input_all(&input, datalog)?;
                                 let channel_data = mqtt::ChannelData::Message(message);
                                 if self.channels.to_mqtt.send(channel_data).is_err() {
-                                    bail!("send(to_mqtt) failed - channel closed?");
+                                    warn!("MQTT consumer unavailable; skipping telemetry");
                                 }
                             }
 
@@ -430,7 +530,7 @@ impl Coordinator {
                     for message in messages {
                         let message = mqtt::ChannelData::Message(message);
                         if self.channels.to_mqtt.send(message).is_err() {
-                            bail!("send(to_mqtt) failed - channel closed?");
+                            warn!("MQTT consumer unavailable; skipping telemetry");
                         }
                     }
                 }
@@ -505,14 +605,14 @@ impl Coordinator {
         if self.config.influx().enabled() {
             let channel_data = influx::ChannelData::InputData(serde_json::to_value(&input)?);
             if self.channels.to_influx.send(channel_data).is_err() {
-                bail!("send(to_influx) failed - channel closed?");
+                warn!("InfluxDB consumer unavailable; skipping sample");
             }
         }
 
         if self.config.have_enabled_database() {
             let channel_data = database::ChannelData::ReadInputAll(input);
             if self.channels.to_database.send(channel_data).is_err() {
-                bail!("send(to_database) failed - channel closed?");
+                warn!("database consumer unavailable; skipping sample");
             }
         }
 

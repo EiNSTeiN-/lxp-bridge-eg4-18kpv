@@ -38,6 +38,9 @@ impl TimeSync {
         }
 
         if let Packet::TranslatedData(td) = receiver.wait_for_reply(&packet).await? {
+            if td.values.len() < 6 {
+                bail!("invalid timesync reply length: {}", td.values.len());
+            }
             let year = td.values[0] as u32;
             let month = td.values[1] as u32;
             let day = td.values[2] as u32;
@@ -48,7 +51,8 @@ impl TimeSync {
             // pretend inverter is in Utc to avoid ambiguous time conversions and timezones
             let dt = chrono::Utc
                 .with_ymd_and_hms(2000 + year as i32, month, day, hour, minute, second)
-                .unwrap();
+                .single()
+                .ok_or_else(|| anyhow!("invalid inverter date/time: {:?}", td.values))?;
 
             // get current time in Utc, then add the appropriate offset so we can compare to
             // inverter time correctly

@@ -297,3 +297,31 @@ fn parse_write_param_reply() {
         })
     );
 }
+
+#[test]
+fn malformed_register_payloads_are_rejected_without_panicking() {
+    fn reply(register: u16, values: &[u8]) -> Vec<u8> {
+        let mut data = vec![1, 3];
+        data.extend_from_slice(b"5555555555");
+        data.extend_from_slice(&register.to_le_bytes());
+        data.push(values.len() as u8);
+        data.extend_from_slice(values);
+        let crc = crc16::State::<crc16::MODBUS>::calculate(&data);
+        let mut frame = vec![161, 26, 2, 0];
+        frame.extend_from_slice(&(16_u16 + data.len() as u16).to_le_bytes());
+        frame.extend_from_slice(&[1, 194]);
+        frame.extend_from_slice(b"2222222222");
+        frame.extend_from_slice(&(2_u16 + data.len() as u16).to_le_bytes());
+        frame.extend_from_slice(&data);
+        frame.extend_from_slice(&crc.to_le_bytes());
+        frame
+    }
+    for (register, values) in [
+        (0, vec![]),
+        (0, vec![1, 2, 3]),
+        (u16::MAX, vec![1, 2, 3, 4]),
+    ] {
+        assert!(lxp::packet::Parser::parse(&reply(register, &values)).is_err());
+    }
+    assert!(lxp::packet::Parser::parse(&reply(u16::MAX, &[1, 2])).is_ok());
+}
